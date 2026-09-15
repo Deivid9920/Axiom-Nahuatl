@@ -1,5 +1,0 @@
-Copyright (c) 2026 David Jaimes Sill. All rights reserved.
-
-All rights reserved. No part of this software, including source code, binaries, 
-or documentation, may be reproduced, distributed, modified, or transmitted in 
-any form or by any means without the prior written permission of the copyright holder.
