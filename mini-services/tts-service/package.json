@@ -1,0 +1,9 @@
+{
+  "name": "axiom-tts-service",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "python3 server.py"
+  }
+}

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  AXIOM — Marca
+
+  Glifo de la palabra hablada. En la tradición pictórica náhuatl, el habla se
+  representa con la vírgula de la palabra (tlahtolli): una voluta que sale de
+  la boca. Aquí se reduce a dos elementos:
+
+    · la voluta, que asciende y se enrolla — la voz que sale;
+    · tres ondas concéntricas a su izquierda — el oído que recibe.
+
+  Las dos habilidades de la plataforma, escucha y pronunciación, en una figura.
+  Sustituye al logotipo en forma de "Z" que venía de la plantilla del andamiaje
+  y que se confundía con el proyecto hermano.
+-->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" x="0px" y="0px"
+     viewBox="0 0 30 30" style="enable-background:new 0 0 30 30;" xml:space="preserve"
+     role="img" aria-label="Axiom">
+  <defs>
+    <style type="text/css">
+      .ax-ground { fill: #1A1614; }
+      .ax-mark   { fill: none; stroke: #F5EFE6; stroke-width: 1.55;
+                   stroke-linecap: round; stroke-linejoin: round; }
+      .ax-wave   { fill: none; stroke: #E0A93B; stroke-width: 1.2; stroke-linecap: round; }
+
+      .ax-wave-1 { animation: ax-listen 2.8s ease-in-out infinite; }
+      .ax-wave-2 { animation: ax-listen 2.8s ease-in-out 0.22s infinite; }
+      .ax-wave-3 { animation: ax-listen 2.8s ease-in-out 0.44s infinite; }
+
+      @keyframes ax-listen {
+        0%, 100% { opacity: 0.25; }
+        45%      { opacity: 1; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .ax-wave-1, .ax-wave-2, .ax-wave-3 { animation: none; opacity: 0.75; }
+      }
+    </style>
+  </defs>
+
+  <!-- Cartela -->
+  <path class="ax-ground" d="M24.51,28.51H5.49c-2.21,0-4-1.79-4-4V5.49c0-2.21,1.79-4,4-4h19.03c2.21,0,4,1.79,4,4v19.03
+    C28.51,26.72,26.72,28.51,24.51,28.51z"/>
+
+  <!-- Oído: ondas que entran -->
+  <g>
+    <path class="ax-wave ax-wave-1" d="M8.6,12.4c-1.05,1.6-1.05,3.6,0,5.2"/>
+    <path class="ax-wave ax-wave-2" d="M6.5,10.6c-1.75,2.7-1.75,6.1,0,8.8"/>
+    <path class="ax-wave ax-wave-3" d="M4.4,8.8c-2.45,3.8-2.45,8.6,0,12.4"/>
+  </g>
+
+  <!-- Vírgula de la palabra: la voz que sale y se enrolla -->
+  <path class="ax-mark" d="M12.4,20.8c0-4.9,1.7-8.4,4.6-9.9c2.6-1.35,5.4-0.3,6,1.9c0.5,1.85-0.7,3.5-2.4,3.5
+    c-1.35,0-2.3-0.95-2.3-2.15c0-1,0.7-1.75,1.6-1.75"/>
+</svg>

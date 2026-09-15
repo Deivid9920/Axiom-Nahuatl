@@ -1,0 +1,19 @@
+# AXIOM — Proxy inverso
+#
+# SEGURIDAD (AX-05): se eliminó el enrutado por el parámetro de consulta
+# `XTransformPort`, que permitía a cualquier cliente dirigir la petición a
+# cualquier puerto de loopback (`reverse_proxy localhost:{query.XTransformPort}`).
+# Era un SSRF concedido por diseño: exponía el servicio TTS sin autenticar (3004),
+# el WebSocket de chat (3003) y cualquier otro servicio del anfitrión.
+#
+# Los mini-servicios NO se exponen a través de este proxy. Deben escuchar en
+# 127.0.0.1 y ser alcanzables únicamente desde el proceso de la aplicación.
+
+:81 {
+	reverse_proxy localhost:3000 {
+		header_up Host {host}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Real-IP {remote_host}
+	}
+}

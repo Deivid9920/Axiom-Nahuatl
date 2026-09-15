@@ -1,0 +1,904 @@
+// AXIOM — Prisma Schema (MVP, Fase 1)
+// Per TDD §2.3 — 13 entity groups
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// 1. AUTH & USERS
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastLoginAt     DateTime?
+
+  profile         UserProfile?
+  subscriptions   Subscription[]
+  sessions        AuthSession[]
+  learningSessions LearningSession[]
+  documents       UserDocument[]
+  agentMemories   AgentMemory[]
+  agentRuns       AgentRun[]
+  auditLogs       AuditLog[]
+  events          SystemEvent[]      @relation("EventProducer")
+  consumedEvents  SystemEvent[]      @relation("EventConsumer")
+  payments        Payment[]
+  featureFlags    FeatureFlagAssignment[]
+  experimentAssignments ExperimentAssignment[]
+  progress        UserProgress[]
+  vocabularyItems VocabularyItem[]
+  reviewSchedules ReviewSchedule[]
+  errorEvents     ErrorEvent[]
+  metricPoints    MetricPoint[]
+  resetTokens     PasswordResetToken[]
+  userRoles       UserRole[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model AuthSession {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jwtJti       String   @unique  // JWT ID for revocation
+  refreshHash  String   // hash of refresh token
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  revokedAt    DateTime?
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// 2. RBAC
+
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique  // 'STUDENT' | 'ADMIN'
+  description String?
+  permissions RolePermission[]
+  users       UserRole[]
+
+  createdAt   DateTime @default(now())
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  key         String   @unique  // e.g. 'module.conversation.use', 'admin.users.read'
+  description String?
+  roles       RolePermission[]
+
+  createdAt   DateTime @default(now())
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model UserRole {
+  userId   String
+  roleId   String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role     Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@id([userId, roleId])
+  @@index([roleId])
+}
+
+// 3. USER PROFILE
+
+model UserProfile {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // CEFR proficiency (IRT theta, mapped to CEFR: A1=-3, A2=-2, B1=-1, B2=0, C1=1, C2=2)
+  cefrInitial         String   @default("A2")  // from placement test
+  cefrCurrent         String   @default("A2")
+  theta               Float    @default(-2.0)  // IRT ability estimate
+  thetaSE             Float    @default(1.0)   // standard error
+  thetaUpdatedAt      DateTime @default(now())
+
+  // 4 FUNDAMENTAL LANGUAGE SKILLS (0-100 scale, per CEFR exam areas)
+  // Each skill tracked independently for balanced development
+  skillReading        Float    @default(20.0)  // Reading comprehension
+  skillWriting        Float    @default(20.0)  // Writing / composition
+  skillListening      Float    @default(20.0)  // Listening comprehension
+  skillSpeaking       Float    @default(20.0)  // Speaking / pronunciation
+  skillsUpdatedAt     DateTime @default(now())
+
+  // Per-skill CEFR levels (for granular tracking)
+  cefrReading         String   @default("A2")
+  cefrWriting         String   @default("A2")
+  cefrListening       String   @default("A2")
+  cefrSpeaking        String   @default("A2")
+
+  // Learning mode: controls intensity and pace
+  // tranquilo = 2 sessions/week, 15 min each
+  // moderado = 4 sessions/week, 25 min each (default)
+  // agresivo = 6 sessions/week, 40 min each
+  learningMode        String   @default("moderado")
+
+  // Schedule preferences
+  learningDays        String   @default("[1,2,3,4,5]")  // JSON: days of week (1=Mon..7=Sun)
+  learningTimeStart   String   @default("09:00")  // preferred start time HH:MM
+  learningTimeEnd     String   @default("10:00")   // preferred end time HH:MM
+  sessionDurationMin  Int      @default(25)  // minutes per session
+
+  // Thematic context (drives RAG retrieval)
+  professionalDomain  String   @default("vida_cotidiana")  // vida_cotidiana, naturaleza, familia_comunidad, tradiciones, comida, comercio
+  jobRole             String?
+  learningGoals       String?  // JSON array of goals
+  weeklyMinutesGoal   Int      @default(150)
+
+  // Preferences
+  uiLanguage          String   @default("es-MX")
+  learningLanguage    String   @default("nah")
+  darkMode            Boolean  @default(false)
+
+  // Onboarding
+  onboardingCompleted Boolean  @default(false)
+  onboardedAt         DateTime?
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([professionalDomain])
+}
+
+// 4. SUBSCRIPTIONS & BILLING
+
+model Plan {
+  id              String   @id @default(cuid())
+  code            String   @unique  // 'basico' | 'pro' | 'equipo' | 'enterprise'
+  name            String   // 'Básico' | 'Pro' | 'Equipo' | 'Enterprise'
+  priceMxn        Int      // monthly price in MXN cents (e.g. 19900 = $199.00 MXN)
+  priceUsdCents   Int      // for display
+  description     String?
+  featuresJson    String   // JSON: { maxSessionsPerMonth, ragEnabled, voiceEnabled, ... }
+
+  maxSessionsPerMonth   Int  @default(30)
+  maxDocuments          Int  @default(0)
+  ragEnabled            Boolean @default(false)
+  voiceEnabled          Boolean @default(false)
+  teamEnabled           Boolean @default(false)
+  adminEnabled          Boolean @default(false)
+  prioritySupport       Boolean @default(false)
+
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  subscriptions   Subscription[]
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId          String
+  plan            Plan     @relation(fields: [planId], references: [id])
+
+  status          String   @default("active")  // active | past_due | canceled | trialing
+  cadence         String   @default("monthly") // monthly | annual
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean @default(false)
+
+  mercadoPagoSubscriptionId String?  // MP subscription external ID
+  mercadoPagoCustomerId     String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  payments        Payment[]
+
+  @@index([userId])
+  @@index([status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscriptionId  String?
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  amountMxnCents  Int
+  amountUsdCents  Int
+  currency        String   @default("MXN")
+
+  provider        String   @default("mercado_pago")  // mercado_pago | stripe | manual
+  providerPaymentId String?  // MP payment external ID
+  status          String   @default("pending")  // pending | succeeded | failed | refunded
+  failureReason   String?
+
+  invoiceUrl      String?
+  webhookReceivedAt DateTime?
+  processedAt     DateTime?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([providerPaymentId])
+}
+
+// 5. LEARNING SESSIONS
+
+model LearningSession {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  module          String   // 'conversation' | 'text' | 'voice' | 'typing' | 'translation' | 'reading'
+  mode            String   // conversation: technical_interview | casual | reinforcement
+                          // text: writing | translation | professional_writing
+                          // voice: reading_pronunciation
+                          // typing: general | technical | business
+                          // translation: es_to_nah | nah_to_es
+                          // reading: comprehension | pronunciation
+
+  domain          String   @default("vida_cotidiana")
+  cefrTarget      String?
+  scenarioTitle   String?
+  scenarioConfig  String?  // JSON: scenario-specific config
+
+  startedAt       DateTime @default(now())
+  endedAt         DateTime?
+  durationSec     Int?
+
+  messagesCount   Int      @default(0)
+  tokensIn        Int      @default(0)
+  tokensOut       Int      @default(0)
+  costMxnCents    Int      @default(0)
+
+  status          String   @default("active")  // active | completed | abandoned
+  evaluationJson  String?  // final session evaluation
+
+  messages        SessionMessage[]
+  evaluations     SessionEvaluation[]
+
+  @@index([userId, startedAt])
+  @@index([module, mode])
+  @@index([status])
+}
+
+model SessionMessage {
+  id              String   @id @default(cuid())
+  sessionId       String
+  session         LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  role            String   // 'user' | 'assistant' | 'system' | 'tool'
+  content         String
+
+  // Token + cost tracking (per message)
+  tokensIn        Int      @default(0)
+  tokensOut       Int      @default(0)
+  costMxnCents    Int      @default(0)
+
+  // RAG context used for this message (for audit/replay)
+  ragContextJson  String?  // JSON of retrieved chunks
+  agentType       String?  // which agent generated this (if assistant)
+
+  // Corrections issued by AI Tutor for this message
+  correctionsJson String?  // JSON array of {issue, type, correction, explanation}
+
+  createdAt       DateTime @default(now())
+
+  @@index([sessionId, createdAt])
+  @@index([role])
+}
+
+model SessionEvaluation {
+  id              String   @id @default(cuid())
+  sessionId       String
+  session         LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  // IRT update applied (delta on theta)
+  thetaBefore     Float
+  thetaAfter      Float
+  thetaSEAfter    Float
+
+  // Skill breakdown (0-1 scores)
+  grammarScore    Float?
+  vocabularyScore Float?
+  pronunciationScore Float?
+  fluencyScore    Float?
+  coherenceScore  Float?
+
+  // Error analysis
+  errorsJson      String?  // JSON array of {type, count, examples[]}
+
+  // Overall feedback
+  summary         String?
+  recommendation  String?  // next exercise suggestion
+
+  createdAt       DateTime @default(now())
+
+  @@index([sessionId])
+}
+
+// 6. PROGRESS & PEDAGOGY
+
+model UserProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  date            DateTime @default(now())  // day granularity (date-only)
+
+  sessionsCount       Int  @default(0)
+  messagesCount       Int  @default(0)
+  tokensUsed          Int  @default(0)
+  activeMinutes       Int  @default(0)
+
+  wordsPracticed      Int  @default(0)
+  newWordsLearned     Int  @default(0)
+  errorsCount         Int  @default(0)
+  correctionsApplied  Int  @default(0)
+
+  thetaStart          Float?
+  thetaEnd            Float?
+
+  @@unique([userId, date])
+  @@index([userId, date])
+}
+
+model VocabularyItem {
+  // User's personal vocabulary (FSRS-managed)
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  term            String   // the náhuatl term
+  definition      String?  // user-friendly definition (NAH + ES gloss)
+  domain          String   @default("general")
+  cefrLevel       String?
+
+  // FSRS parameters (Free Spaced Repetition Scheduler)
+  stability       Float    @default(0.4)  // days
+  difficulty      Float    @default(5.0)  // 1-10 scale
+  retrievability  Float    @default(1.0)  // 0-1, current recall probability
+  lastReviewedAt  DateTime?
+  nextReviewAt    DateTime?
+  reviewCount     Int      @default(0)
+  lapseCount      Int      @default(0)  // times forgotten
+
+  // Source
+  source          String   @default("session")  // session | manual | document
+  sourceSessionId String?
+
+  // Scheduled reviews (FSRS output)
+  reviewSchedules ReviewSchedule[]
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId, nextReviewAt])
+  @@index([userId, domain])
+}
+
+model ReviewSchedule {
+  // Pending reviews for a user (FSRS scheduler output)
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabularyItemId String?
+  vocabularyItem   VocabularyItem? @relation(fields: [vocabularyItemId], references: [id], onDelete: Cascade)
+
+  scheduledFor    DateTime
+  priority        Float    // FSRS urgency score
+  completedAt     DateTime?
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId, scheduledFor])
+  @@index([userId, completedAt])
+}
+
+// 7. DOCUMENTS (RAG USER UPLOADS)
+
+model UserDocument {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title           String
+  fileType        String   // pdf | docx | txt | md | png | jpg
+  sizeBytes       Int
+  contentHash     String   // SHA-256, for dedup
+
+  // Local storage path (swap to R2 key in prod)
+  storagePath     String
+
+  // Processing status
+  status          String   @default("pending")  // pending | processing | ready | failed
+  processingError String?
+  processedAt     DateTime?
+
+  // Metadata
+  domain          String?  // detected professional domain
+  language        String?  // detected language
+
+  chunks          DocumentChunk[]
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([contentHash])
+  @@index([status])
+}
+
+model DocumentChunk {
+  id              String   @id @default(cuid())
+  documentId      String
+  document        UserDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  content         String   // chunk text (300-1000 chars per MVP)
+  chunkIndex      Int      // ordinal within document
+  tokenCount      Int
+
+  // Embedding (stored as JSON for SQLite; would be Float[] in pgvector)
+  embeddingJson   String?  // JSON array of floats (1024-dim BGE-M3-like)
+  embeddingModel  String?  @default("bge-m3-local")
+
+  // Metadata for filtered retrieval
+  domain          String?
+  cefrLevel       String?
+  section         String?  // heading/section title
+
+  createdAt       DateTime @default(now())
+
+  @@index([documentId, chunkIndex])
+  @@index([domain])
+}
+
+// 8. KNOWLEDGE BASE (RAG GLOBAL CORPUS)
+
+model DomainContent {
+  // Top-level domain category
+  id              String   @id @default(cuid())
+  code            String   @unique  // vida_cotidiana, naturaleza, ...
+  name            String
+  description     String?
+  cefrDefault     String   @default("B1")
+
+  vocabEntries    VocabularyEntry[]
+  grammarRules    GrammarRule[]
+  exercises       Exercise[]
+  pitfalls        Pitfall[]
+
+  createdAt       DateTime @default(now())
+}
+
+model VocabularyEntry {
+  id              String   @id @default(cuid())
+  domainId        String
+  domain          DomainContent @relation(fields: [domainId], references: [id])
+
+  term            String
+  pos             String?  // part of speech
+  phonetic        String?  // IPA
+  definitionEn    String
+  definitionEs    String
+  cefrLevel       String   // A1-C2
+  difficultyScore Float    @default(0.5)  // 0-1
+
+  examplesJson    String?  // JSON array of contextual examples
+  synonymsJson    String?  // JSON array
+  antonymsJson    String?  // JSON array
+  collocationsJson String? // JSON array of common collocations
+
+  embeddingJson   String?  // for semantic search on KB
+  pitfalls        Pitfall[]
+
+  createdAt       DateTime @default(now())
+
+  @@index([domainId, cefrLevel])
+  @@index([term])
+}
+
+model GrammarRule {
+  id              String   @id @default(cuid())
+  domainId        String
+  domain          DomainContent @relation(fields: [domainId], references: [id])
+
+  name            String   // e.g. "Present Perfect vs Past Simple"
+  cefrLevel       String
+  statement       String   // the rule
+  examplesJson    String   // JSON array of {correct, incorrect, explanation}
+  exceptionsJson  String?
+
+  embeddingJson   String?
+  pitfalls        Pitfall[]
+
+  createdAt       DateTime @default(now())
+
+  @@index([domainId, cefrLevel])
+}
+
+model Exercise {
+  id              String   @id @default(cuid())
+  domainId        String
+  domain          DomainContent @relation(fields: [domainId], references: [id])
+
+  type            String   // translation | fill_blank | conversation_prompt | writing_prompt | pronunciation
+  cefrLevel       String
+  difficultyScore Float    @default(0.5)
+
+  prompt          String   // exercise prompt
+  expectedAnswer  String?  // for auto-graded types
+  rubricJson      String?  // for LLM-graded types
+  targetVocabJson String?  // JSON array of vocab IDs
+
+  embeddingJson   String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([domainId, cefrLevel, type])
+}
+
+model Pitfall {
+  id              String   @id @default(cuid())
+  domainId        String
+  domain          DomainContent @relation(fields: [domainId], references: [id])
+
+  // Either linked to a vocab entry or a grammar rule (or general)
+  vocabEntryId    String?
+  vocabEntry      VocabularyEntry? @relation(fields: [vocabEntryId], references: [id])
+  grammarRuleId   String?
+  grammarRule     GrammarRule? @relation(fields: [grammarRuleId], references: [id])
+
+  type            String   // 'false_friend' | 'pronunciation' | 'register' | 'collocation' | 'grammar'
+  description     String   // what the error is
+  correctForm     String
+  incorrectForm   String
+  explanation     String   // why it's wrong (for Spanish speakers)
+
+  createdAt       DateTime @default(now())
+
+  @@index([domainId, type])
+  @@index([vocabEntryId])
+  @@index([grammarRuleId])
+}
+
+// 9. AGENTS & MEMORY (per Master Prompt §11)
+
+model AgentMemory {
+  // EXACT schema per Master Prompt §11 (long-term memory)
+  id          String   @id @default(cuid())
+  agentType   String   // 'ai_tutor' | 'learning' | 'analytics' | 'product' | 'engineering'
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  context     String   // JSON-serialized context blob (master prompt: "context")
+  metadata    String   // JSON-serialized metadata (master prompt: "metadata")
+
+  timestamp   DateTime @default(now())
+
+  @@index([agentType, userId, timestamp])
+  @@index([userId, timestamp])
+}
+
+model AgentRun {
+  id              String   @id @default(cuid())
+  agentType       String
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  triggerEventId  String?  // system event that triggered this run
+  inputJson       String   // input to the agent
+  outputJson      String?  // agent output
+  status          String   @default("running")  // running | completed | failed
+  errorMessage    String?
+
+  // Observability
+  traceId         String?
+  spanId          String?
+  durationMs      Int?
+  tokensUsed      Int      @default(0)
+  costMxnCents    Int      @default(0)
+
+  toolCalls       AgentToolCall[]
+
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+
+  @@index([userId, startedAt])
+  @@index([agentType, startedAt])
+  @@index([status])
+}
+
+model AgentToolCall {
+  id              String   @id @default(cuid())
+  agentRunId      String
+  agentRun        AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  toolName        String   // e.g. 'rag.retrieve', 'memory.write', 'progress.update'
+  permission      String?  // required permission
+  allowed         Boolean  @default(true)  // RBAC check result
+  inputJson       String
+  outputJson      String?
+  errorMessage    String?
+  durationMs      Int?
+
+  calledAt        DateTime @default(now())
+
+  @@index([agentRunId, calledAt])
+  @@index([toolName])
+}
+
+// 10. SYSTEM EVENTS (per Master Prompt §12)
+
+model SystemEvent {
+  id              String   @id @default(cuid())
+
+  name            String   // event name, e.g. 'USER_COMPLETED_LESSON'
+  producer        String   // producer name (module/agent/service)
+  producerUserId  String?  // user that triggered the event
+  producerUser    User?    @relation("EventProducer", fields: [producerUserId], references: [id])
+
+  payloadJson     String   // JSON event payload
+
+  // Consumer tracking (one row per consumer that needs to process this event)
+  consumer        String?  // consumer name (agent/service)
+  consumerUserId  String?
+  consumerUser    User?    @relation("EventConsumer", fields: [consumerUserId], references: [id])
+
+  status          String   @default("pending")  // pending | processing | completed | failed
+  processedAt     DateTime?
+  errorMessage    String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([name, createdAt])
+  @@index([producer, createdAt])
+  @@index([consumer, status])
+  @@index([producerUserId, createdAt])
+}
+
+// 11. FEATURE FLAGS & EXPERIMENTS (Product Agent)
+
+model FeatureFlag {
+  id              String   @id @default(cuid())
+  key             String   @unique  // e.g. 'voice_module_enabled'
+  description     String?
+  enabled         Boolean  @default(false)
+  rolloutPercent  Int      @default(0)  // 0-100, gradual rollout
+  configJson      String?  // JSON config for the flag
+
+  assignments     FeatureFlagAssignment[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model FeatureFlagAssignment {
+  id              String   @id @default(cuid())
+  flagId          String
+  flag            FeatureFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  enabled         Boolean  // computed from flag + rollout + override
+  overrideReason  String?  // 'manual' | 'experiment' | null
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([flagId, userId])
+  @@index([userId])
+}
+
+model Experiment {
+  id              String   @id @default(cuid())
+  key             String   @unique  // e.g. 'chat_prompt_v2'
+  name            String
+  description     String?
+  status          String   @default("draft")  // draft | running | completed | archived
+  startDate       DateTime?
+  endDate         DateTime?
+  sampleSize      Int      @default(0)  // target
+
+  variants        ExperimentVariant[]
+  assignments     ExperimentAssignment[]
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model ExperimentVariant {
+  id              String   @id @default(cuid())
+  experimentId    String
+  experiment      Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  key             String   // 'control' | 'treatment_a' | ...
+  weight          Int      @default(50)  // traffic split weight
+  configJson      String?  // variant-specific config
+
+  assignments     ExperimentAssignment[]
+
+  @@index([experimentId])
+}
+
+model ExperimentAssignment {
+  id              String   @id @default(cuid())
+  experimentId    String
+  experiment      Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variantId       String
+  variant         ExperimentVariant @relation(fields: [variantId], references: [id])
+
+  assignedAt      DateTime @default(now())
+
+  @@unique([experimentId, userId])
+  @@index([userId])
+}
+
+// 12. AUDIT & OBSERVABILITY
+
+model AuditLog {
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  action          String   // e.g. 'login', 'plan.change', 'agent.dispatch', 'rbac.deny'
+  resourceType    String?
+  resourceId      String?
+
+  ipAddress       String?
+  userAgent       String?
+  requestId       String?
+
+  metadataJson    String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([requestId])
+}
+
+model MetricPoint {
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  name            String   // e.g. 'llm.tokens_in', 'session.duration_sec'
+  type            String   // 'counter' | 'gauge' | 'histogram'
+  value           Float
+  unit            String?  // 'ms', 'tokens', 'mxn_cents'
+  tagsJson        String?  // JSON tags
+
+  recordedAt      DateTime @default(now())
+
+  @@index([name, recordedAt])
+  @@index([userId, recordedAt])
+}
+
+// 13. ERRORS (Engineering Agent)
+
+model ErrorEvent {
+  id              String   @id @default(cuid())
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  fingerprint     String   // hash of error signature for clustering
+  name            String   // error name (TypeError, etc.)
+  message         String
+  stack           String?
+  statusCode      Int?
+
+  requestUrl      String?
+  requestMethod   String?
+  requestId       String?
+
+  userAgent       String?
+  ipAddress       String?
+
+  metadataJson    String?
+  clusterId       String?  // assigned by Engineering agent
+
+  status          String   @default("new")  // new | clustered | resolved | ignored
+  resolvedAt      DateTime?
+  resolutionNotes String?
+
+  createdAt       DateTime @default(now())
+
+  @@index([fingerprint, createdAt])
+  @@index([status, createdAt])
+  @@index([clusterId])
+}
+
+// 14. CORPUS DE LECTURA EN VOZ ALTA (práctica de pronunciación)
+
+model ReadingText {
+  id              String   @id @default(cuid())
+  title           String
+  content         String   // the full text to read
+  wordCount       Int
+  cefrLevel       String   // A1-C2
+  domain          String   @default("general")  // software_engineering, finance, etc.
+  topic           String   @default("general")  // e.g. "code_review", "standup", "email"
+  difficultyScore Float    @default(0.5)  // 0-1
+  estimatedReadingTimeSec Int  // estimated time to read aloud
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  @@index([cefrLevel, domain])
+  @@index([isActive])
+}
+
+// 17. LEARNING CURRICULUM (topics for dashboard cards)
+
+model CurriculumTopic {
+  id              String   @id @default(cuid())
+  title           String   // e.g. "Present Simple"
+  description     String   // short description
+  skill           String   // reading | writing | listening | speaking
+  cefrLevel       String   // A1-C2
+  domain          String   @default("general")
+  module          String   // conversation | typing | translation | reading | voice | text
+  difficultyScore Float    @default(0.5)
+  order           Int      @default(0)  // suggested order within level
+  icon            String?  // material symbol name
+  color           String?  // hex color for card
+  prerequisitesJson String? // JSON: array of topic IDs
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  userProgress    UserTopicProgress[]
+
+  @@index([skill, cefrLevel, order])
+  @@index([isActive])
+}
+
+model UserTopicProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  topicId         String
+  topic           CurriculumTopic @relation(fields: [topicId], references: [id])
+  status          String   @default("not_started")  // not_started | in_progress | completed | mastered
+  progress        Float    @default(0.0)  // 0-1
+  score           Float?   // 0-100 best score
+  attemptsCount   Int      @default(0)
+  lastAttemptedAt DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([userId, topicId])
+  @@index([userId, status])
+}
