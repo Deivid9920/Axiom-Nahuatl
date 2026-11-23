@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, Fragment, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -37,10 +38,10 @@ import dynamic from 'next/dynamic'
 const Leaves3D = dynamic(() => import('@/components/scene3d').then(m => m.Leaves3D), { ssr: false })
 const Water3D = dynamic(() => import('@/components/scene3d').then(m => m.Water3D), { ssr: false })
 const Mascot3D = dynamic(() => import('@/components/scene3d').then(m => m.Mascot3D), { ssr: false })
-import type { D3Node } from '@/components/landscape3d'
-const Landscape3D = dynamic(() => import('@/components/landscape3d').then(m => m.Landscape3D), { ssr: false })
-import type { Overworld2DNode } from '@/components/overworld2d'
+import type { Overworld2DNode, ModuleArchipelagoStatus } from '@/components/overworld2d'
 const Overworld2D = dynamic(() => import('@/components/overworld2d').then(m => m.Overworld2D), { ssr: false })
+const WorldMap2D = dynamic(() => import('@/components/worldmap2d').then(m => m.WorldMap2D), { ssr: false })
+import { LemurVineTransition } from '@/components/lemur-vine-transition'
 const TravelGlobe = dynamic(() => import('@/components/scene3d').then(m => m.TravelGlobe), { ssr: false })
 
 // Sonda ligera de WebGL (una vez por sesión) para decidir mascota 3D vs SVG
@@ -337,6 +338,19 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
   const [tab, setTab] = useState<TabKey>('dashboard')
   const [lesson, setLesson] = useState<ActiveLesson | null>(null)
   const [pathModule, setPathModule] = useState<string | null>(null)
+  const [vineTarget, setVineTarget] = useState<string | null>(null)
+  const openIslandWithVine = useCallback((code: string) => {
+    setVineTarget(code)
+  }, [])
+  const handleVineMidpoint = useCallback(() => {
+    setVineTarget(prev => {
+      if (prev) setPathModule(prev)
+      return prev
+    })
+  }, [])
+  const handleVineComplete = useCallback(() => {
+    setVineTarget(null)
+  }, [])
   const [termsOpen, setTermsOpen] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [backStack, setBackStack] = useState<TabKey[]>([])
@@ -560,10 +574,13 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
                   ? <FinalEvalTab lesson={lesson} onExit={() => setLesson(null)} onComplete={completeLesson} user={user} />
                   : <SessionRunner lesson={lesson} immersion={profile?.immersion} onExit={() => setLesson(null)} onDone={handleSessionDone} />
               ) : pathModule ? (
-                <ModulePath moduleCode={pathModule} onBack={() => setPathModule(null)} onStart={setLesson} user={user} />
+                <ModulePath moduleCode={pathModule} onBack={() => setPathModule(null)} onSelectModule={setPathModule} onStart={setLesson} user={user} />
               ) : (
-                <DashboardTab user={user} profile={profile} onOpenModule={(code) => setPathModule(code)} />
+                <DashboardTab user={user} profile={profile} onOpenModule={openIslandWithVine} />
               ))}
+              {vineTarget && (
+                <LemurVineTransition onMidpoint={handleVineMidpoint} onComplete={handleVineComplete} />
+              )}
               {tab === 'premium' && <PremiumStudio subscription={subscription} />}
               {tab === 'plans' && <PlansView subscription={subscription} onUpdated={loadProfile} />}
               {tab === 'metrics' && <MetricsTab profile={profile} />}
@@ -1046,82 +1063,14 @@ function DashboardTab({ user, profile, onOpenModule }: {
   if (repasoOpen) return <RepasoRunner onClose={() => { setRepasoOpen(false); fetch('/api/srs?limit=1').then(r => r.json()).then(d => { if (d?.ok) setDue(d.dueCount || 0) }).catch(() => {}) }} />
 
   return (
-    <div className="space-y-6">
-      {/* Cabecera con meta diaria (anillo animado) */}
-      <div className="flex items-center gap-5 flex-wrap">
-        <div className="flex-1 min-w-[240px]">
-          <p className="axiom-eyebrow">Hello · Hola</p>
-          <h1 className="axiom-hello mt-1">{(user.name || user.email.split('@')[0]).toLowerCase()}</h1>
-          <p className="text-sm text-[var(--color-muted-navy)] mt-1">
-            {currentModule
-              ? <>Tu camino continúa en el <b>Módulo {currentModule.index} · {currentModule.level}</b>. Sesiones cortas, todos los días: así se construye el inglés.</>
-              : 'Elige un módulo para ver su camino de lecciones.'}
-          </p>
-        </div>
-        <GoalRing minutes={todayMinutes} target={targetMin} />
-      </div>
-
-      <div className="axiom-ruler" />
-
-      {/* R15: repaso del día — la cola SRS trae de vuelta lo aprendido */}
-      <button className={`repaso-card ${due === 0 ? 'zero' : ''} w-full text-left`} onClick={() => setRepasoOpen(true)} aria-label="Abrir repaso del día">
-        <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white flex-shrink-0" style={{ background: '#6B8E6A', boxShadow: '0 3px 0 #55704F' }}>
-          <MS name="autorenew" className="!text-[22px]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-extrabold text-[var(--color-carbon)]">Repaso del día {due > 0 && <span className="ml-1.5 px-2 py-0.5 rounded-full text-[10px] font-extrabold text-white" style={{ background: '#E9A23B' }}>{due}</span>}</p>
-          <p className="text-xs text-[var(--color-muted-navy)]">{due > 0 ? 'Tu memoria espaciada te espera: fija lo aprendido en minutos.' : 'Tu cola está al día. Completa nodos para alimentarla.'}</p>
-        </div>
-        <MS name="chevron_right" className="!text-[20px] text-[var(--color-muted-navy)] flex-shrink-0" />
-      </button>
-
-      <div className="space-y-4">
-        {cards.map(c => {
-          const cta = c.state === 'completed' ? 'Repasar' : (c.done > 0 ? 'Continuar' : 'Empezar')
-          return (
-            <button
-              key={c.code}
-              onClick={() => { if (!c.unlocked) { toast.info(c.lockReason || 'Módulo bloqueado'); return } onOpenModule(c.code) }}
-              className={`axiom-card p-5 w-full text-left transition-opacity ${c.unlocked ? '' : 'opacity-80'}`}
-              aria-label={`Módulo ${c.index}: ${c.title}`}
-            >
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-2xl flex items-center justify-center text-white flex-shrink-0 relative" style={{ background: c.unlocked ? '#14A085' : '#A89B8C', boxShadow: c.unlocked ? '0 4px 0 #0A6B60' : '0 4px 0 #7d7267' }}>
-                  <MS name={c.unlocked ? (MODULE_ICONS[c.code] || 'school') : 'lock'} className="!text-[26px]" />
-                  <span className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-[#201B15] text-[#FAF3E7] text-[10px] font-extrabold flex items-center justify-center border-2 border-paper">{c.index}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-lg font-extrabold text-[var(--color-carbon)]">Módulo {c.index} · {c.title}</span>
-                    <span className="pill-level">{c.level}</span>
-                    <span className="pill-hours">{c.hours} H</span>
-                  </div>
-                  <p className="text-xs text-[var(--color-muted-navy)] mt-0.5 leading-relaxed">
-                    {c.unlocked ? c.purpose : (c.lockReason || 'Bloqueado hasta completar el módulo anterior')}
-                  </p>
-                </div>
-                <span className={`module-cta-chip flex-shrink-0 ${c.unlocked ? '' : 'locked'}`}>
-                  <MS name={c.unlocked ? 'play_arrow' : 'lock'} className="!text-[18px]" />
-                  {c.unlocked ? cta : null}
-                </span>
-              </div>
-              {/* R36: arquitectura horaria del módulo (45 h por bloques) — la
-                  lista de 13 lecciones la dan los nodos del mundo 3D */}
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                {(c.blockHours || []).map(b => (
-                  <span key={b.block} className="block-chip">{b.label} · {b.hours} h</span>
-                ))}
-              </div>
-              <div className="flex items-center justify-between mt-3 mb-1.5">
-                <span className="text-[10px] font-extrabold tracking-[0.14em] uppercase text-[var(--color-muted-navy)]">{c.done} de {c.total} lecciones</span>
-                <span className="text-sm font-extrabold text-[#14A085]">{c.pct}%</span>
-              </div>
-              <div className="axiom-progress"><div style={{ width: `${c.pct}%` }} /></div>
-            </button>
-          )
-        })}
-      </div>
-    </div>
+    <WorldMap2D
+      cards={cards}
+      todayMinutes={todayMinutes}
+      targetMinutes={targetMin}
+      dueReviews={due}
+      onOpenModule={onOpenModule}
+      onOpenRepaso={() => setRepasoOpen(true)}
+    />
   )
 }
 
@@ -1631,129 +1580,53 @@ function CertificateOverlay({ user, mod, onClose }: {
   )
 }
 
-function PathScene({ variant, d3nodes, overworldNodes, moduleInfo, nextModule, doneCount = 0, totalCount = 0, focusId, onNodeSelect, hud, children }: {
+function PathScene({ variant, overworldNodes, moduleInfo, allModulesStatus, doneCount = 0, totalCount = 0, isCurrentCompleted = false, focusId, onBack, onOpenCert, onNodeSelect, onSelectModule, hud }: {
   variant: number
-  d3nodes?: D3Node[]
   overworldNodes?: Overworld2DNode[]
-  moduleInfo?: CourseModule
-  nextModule?: CourseModule | null
+  moduleInfo: CourseModule
+  allModulesStatus?: ModuleArchipelagoStatus[]
   doneCount?: number
   totalCount?: number
+  isCurrentCompleted?: boolean
   focusId?: string | null
+  onBack?: () => void
+  onOpenCert?: () => void
   onNodeSelect?: (id: string) => void
+  onSelectModule?: (code: string) => void
   hud?: ReactNode
-  children: ReactNode
 }) {
   const phase = useScenePhase()
-  const isNight = phase === 'night'
-  // Modo 2D Cuphead (Phaser 3) por defecto; permite alternar a 3D si se desea comparar
-  const [mapMode, setMapMode] = useState<'2d' | '3d'>('2d')
-  // R19: paisaje 3D completo (terreno, árboles con viento, hojas, cielo…);
-  // si monta bien, retira TODO el decorado SVG/CSS de R16-R18
-  const [scene3d, setScene3d] = useState(false)
-  const [scene2dReady, setScene2dReady] = useState(false)
-  const sceneReady = useCallback(() => setScene3d(true), [])
+  const [, setScene2dReady] = useState(false)
   const overworldReady = useCallback(() => setScene2dReady(true), [])
-  const use2d = mapMode === '2d' && Boolean(moduleInfo)
-  const hasInteractiveCanvas = use2d ? scene2dReady : scene3d
-  // R18: capas 3D parciales de respaldo (sólo si el paisaje completo no monta)
-  const [leaves3d, setLeaves3d] = useState(false)
-  const [water3d, setWater3d] = useState(false)
-  const leavesReady = useCallback(() => setLeaves3d(true), [])
-  const waterReady = useCallback(() => setWater3d(true), [])
-  const leaves = [
-    { left: '9%', delay: 0, dur: 13, size: 11 },
-    { left: '17%', delay: 3.1, dur: 15, size: 8 },
-    { left: '26%', delay: 6.2, dur: 12, size: 12 },
-    { left: '35%', delay: 1.7, dur: 16, size: 9 },
-    { left: '55%', delay: 4.4, dur: 14, size: 10 },
-    { left: '72%', delay: 2.5, dur: 12.5, size: 8 },
-    { left: '86%', delay: 5.3, dur: 15.5, size: 11 },
-  ]
-  const isWater = variant === 3 || variant === 6
-  return (
-    <div className={`path-scene scene-v${variant} ${hasInteractiveCanvas || use2d ? 'has-3d-scene' : ''} ${leaves3d ? 'has-3d-leaves' : ''} ${water3d ? 'has-3d-water' : ''}`} data-phase={phase}>
-      {use2d && moduleInfo ? (
-        <div className="landscape3d w-full h-full">
-          <Overworld2D
-            moduleInfo={moduleInfo}
-            nextModule={nextModule}
-            phase={phase}
-            nodes={overworldNodes || []}
-            focusId={focusId}
-            doneCount={doneCount}
-            totalCount={totalCount}
-            onNodeSelect={id => onNodeSelect?.(id)}
-            onReady={overworldReady}
-          />
-        </div>
-      ) : (
-        <Landscape3D variant={variant} phase={phase} nodes={d3nodes} focusId={focusId} onNodeSelect={onNodeSelect} onReady={sceneReady} />
-      )}
-      {moduleInfo && (
-        <button
-          type="button"
-          onClick={() => setMapMode(m => (m === '2d' ? '3d' : '2d'))}
-          className="absolute bottom-24 left-3 z-20 inline-flex items-center gap-1.5 rounded-full border-2 border-[#2D2A26] bg-[#FAF3E7]/95 hover:bg-[#E9B83E] px-3 py-1 text-[10.5px] font-black uppercase tracking-[0.12em] text-[#2D2A26] shadow-[0_2px_0_#2D2A26] cursor-pointer"
-          title="Alternar entre mapa 2D estilo Cuphead (PixiJS) y diorama 3D"
-        >
-          <MS name={mapMode === '2d' ? 'view_in_ar' : 'sports_esports'} className="!text-[14px]" />
-          <span>{mapMode === '2d' ? 'Ver en 3D' : 'Volver a 2D'}</span>
-        </button>
-      )}
-      {!hasInteractiveCanvas && !use2d && (
-        <>
-      <div className="scene-sky" />
-      <div className="scene-orb" aria-hidden="true" />
-      {isNight && (
-        <div className="scene-stars" aria-hidden="true">
-          {SCENE_STARS.map((st, i) => (
-            <span key={i} style={{ left: `${st.left}%`, top: `${st.top}%`, width: st.s, height: st.s, animationDelay: `${st.d}s` }} />
-          ))}
-        </div>
-      )}
-      <div className="scene-ground" />
-      {variant === 4 && <div className="scene-hills" aria-hidden="true" />}
-      {isWater && <RiverBand tone={variant === 3 ? 'river' : 'lake'} />}
-      {isWater && <Water3D tone={variant === 3 ? 'river' : 'lake'} phase={phase} onReady={waterReady} />}
-      {variant === 5 && <div className="scene-mist" aria-hidden="true" />}
-      <div className="scene-flora left far" style={{ top: '6%' }} aria-hidden="true"><FloraSide variant={variant} /></div>
-      <div className="scene-flora right far" style={{ top: '20%' }} aria-hidden="true"><FloraSide variant={variant} /></div>
-      <div className="scene-flora left mid" style={{ top: '40%' }} aria-hidden="true"><FloraSide variant={variant} /></div>
-      <div className="scene-flora right mid" style={{ top: '55%' }} aria-hidden="true"><FloraSide variant={variant} /></div>
-      <div className="scene-flora left near" aria-hidden="true"><FloraSide variant={variant} /></div>
-      <div className="scene-flora right near" aria-hidden="true"><FloraSide variant={variant} /></div>
-      {(variant === 1 || variant === 2) && !leaves3d && (
-        <div className="scene-particles" aria-hidden="true">
-          {leaves.map((l, i) => (
-            <span key={i} className={`leaf ${variant === 2 ? 'autumn' : ''}`} style={{ left: l.left, animationDelay: `${l.delay}s`, animationDuration: `${l.dur}s`, width: l.size, height: l.size }} />
-          ))}
-        </div>
-      )}
-      {(variant === 1 || variant === 2) && (
-        <Leaves3D variant={variant} phase={phase} onReady={leavesReady} />
-      )}
-      {variant === 4 && (
-        <div className="scene-clouds" aria-hidden="true"><span className="cloud c1" /><span className="cloud c2" /></div>
-      )}
-      {(variant === 5 || isNight) && (
-        <div className="scene-fireflies" aria-hidden="true">
-          {[12, 24, 68, 82, 47].map((x, i) => (
-            <span key={i} className="firefly" style={{ left: `${x}%`, top: `${28 + i * 9}%`, animationDelay: `${i * 1.3}s` }} />
-          ))}
-        </div>
-      )}
-      {variant === 6 && (
-        <div className="scene-birds" aria-hidden="true">
-          <svg width="70" height="16" viewBox="0 0 70 16" fill="none"><path d="M2 10 Q 8 4 14 10 M20 6 Q 26 0 32 6 M44 11 Q 50 5 56 11" stroke="#54596A" strokeWidth="2" strokeLinecap="round" /></svg>
-        </div>
-      )}
-        </>
-      )}
+  const content = (
+    <div
+      className={`path-scene scene-v${variant} has-3d-scene`}
+      style={{ position: 'fixed', inset: 0, zIndex: 999, margin: 0, height: '100vh', width: '100vw', borderRadius: 0, border: 'none' }}
+      data-phase={phase}
+    >
+      <div className="landscape3d w-full h-full">
+        <Overworld2D
+          moduleInfo={moduleInfo}
+          allModulesStatus={allModulesStatus}
+          phase={phase}
+          nodes={overworldNodes || []}
+          focusId={focusId}
+          doneCount={doneCount}
+          totalCount={totalCount}
+          isCurrentCompleted={isCurrentCompleted}
+          onBack={onBack}
+          onOpenCert={onOpenCert}
+          onNodeSelect={id => onNodeSelect?.(id)}
+          onSelectModule={onSelectModule}
+          onReady={overworldReady}
+        />
+      </div>
       <SceneSound variant={variant} phase={phase} />
-      <div className="scene-content">{hasInteractiveCanvas || use2d ? hud : children}</div>
+      <div className="scene-content">{hud}</div>
     </div>
   )
+  if (typeof document === 'undefined') return content
+  return createPortal(content, document.body)
 }
 
 // Estrellas deterministas para la noche (sin Math.random en render)
@@ -1779,7 +1652,7 @@ function PathConnector({ dir }: { dir: 'lr' | 'rl' }) {
 // R21: HUD del diorama — placa con el nodo vigente (título + sesión) y fila
 // de fichas compactas. Conserva las clases axiom-node / node-sub para el E2E
 // y la accesibilidad; el mundo 3D muestra las estructuras físicas equivalentes.
-function PathHud({ nodes, finalNode, onPick }: { nodes: any[]; finalNode: any; onPick: (id: string) => void }) {
+function PathHud({ nodes, finalNode }: { nodes: any[]; finalNode: any }) {
   const live = nodes.find(t => t.state === 'current') ?? (finalNode?.state === 'current' ? finalNode : nodes[0])
   const subOf = (t: any) =>
     t.order === 99 ? 'Termina el camino'
@@ -1788,67 +1661,45 @@ function PathHud({ nodes, finalNode, onPick }: { nodes: any[]; finalNode: any; o
         : t.state === 'current' && t.sessionsCount > 0
           ? `Sesión ${t.sessionsCount + 1} de 3`
           : lessonSubtitle(t.block)
+  if (!live) return null
   return (
-    <>
-      {live && (
-        <div className="d3d-plaque" aria-live="polite">
-          <span className="node-title">{live.title}</span>
-          <span className="node-sub">{subOf(live)}</span>
-        </div>
-      )}
-      <div className="lesson-dock" aria-label="Lecciones del módulo">
-        {nodes.map((t, i) => (
-          <button
-            key={t.id}
-            onClick={() => onPick(t.id)}
-            className={`axiom-node ${t.state}`}
-            aria-label={t.title}
-            title={t.title}
-          >
-            <MS name={t.state === 'locked' ? 'lock' : (t.icon || 'school')} className="!text-[20px]" />
-            {t.state === 'done' && <span className="axiom-node-check"><MS name="check" className="!text-[13px]" /></span>}
-            {t.state !== 'done' && <span className="axiom-node-badge">{i + 1}</span>}
-          </button>
-        ))}
-        {finalNode && (
-          <button
-            onClick={() => onPick(finalNode.id)}
-            className="axiom-node final"
-            aria-label="Evaluación final"
-            title="Evaluación final"
-          >
-            <MS name={finalNode.state === 'locked' ? 'lock' : 'auto_awesome'} className="!text-[20px]" />
-            {finalNode.state === 'locked' && <span className="axiom-node-badge">{nodes.length + 1}</span>}
-          </button>
-        )}
-      </div>
-    </>
+    <div className="d3d-plaque" style={{ top: '62px', left: '12px' }} aria-live="polite">
+      <span className="node-title">{live.title}</span>
+      <span className="node-sub">{subOf(live)}</span>
+    </div>
   )
 }
 
-function ModulePath({ moduleCode, onBack, onStart, user }: {
+function ModulePath({ moduleCode, onBack, onSelectModule, onStart, user }: {
   moduleCode: string
   onBack: () => void
+  onSelectModule: (code: string) => void
   onStart: (l: ActiveLesson) => void
   user: User
 }) {
   const mod = getModule(moduleCode)
   const [topics, setTopics] = useState<any[] | null>(null)
+  const [allModulesStatus, setAllModulesStatus] = useState<ModuleArchipelagoStatus[]>([])
   const [loading, setLoading] = useState(true)
   const [certOpen, setCertOpen] = useState(false)
-  // R21: nodo enfocado por la cámara del diorama + vuelo antes de abrir
   const [focusNodeId, setFocusNodeId] = useState<string | null>(null)
   const flyTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => () => { if (flyTimer.current) clearTimeout(flyTimer.current) }, [])
 
   useEffect(() => {
     let cancelled = false
-    fetch(`/api/curriculum?module=${moduleCode}`).then(r => r.json()).then(d => {
-      if (!cancelled) {
-        setTopics(d?.ok ? (d.topics || []) : [])
-        setLoading(false)
+    setLoading(true)
+    Promise.all([
+      fetch(`/api/curriculum?module=${moduleCode}`).then(r => r.json()).catch(() => null),
+      fetch('/api/adaptive/plan').then(r => r.json()).catch(() => null),
+    ]).then(([cur, plan]) => {
+      if (cancelled) return
+      setTopics(cur?.ok ? (cur.topics || []) : [])
+      if (plan?.ok && Array.isArray(plan.cards)) {
+        setAllModulesStatus(plan.cards)
       }
-    }).catch(() => { if (!cancelled) { setTopics([]); setLoading(false) } })
+      setLoading(false)
+    })
     return () => { cancelled = true }
   }, [moduleCode])
 
@@ -1880,12 +1731,6 @@ function ModulePath({ moduleCode, onBack, onStart, user }: {
     onStart({ topicId: t.id, title: t.title, module: moduleCode, isFinal: t.order === 99 })
   }
 
-  // R21: los nodos se levantan como estructuras físicas sobre el camino;
-  // al seleccionar uno, la cámara vuela hasta él y entonces abre la lección.
-  const d3nodes: D3Node[] = [
-    ...nodes.map(t => ({ id: t.id as string, title: t.title as string, state: t.state as D3Node['state'] })),
-    ...(finalNode ? [{ id: finalNode.id as string, title: 'Evaluación final', state: finalNode.state as D3Node['state'], final: true }] : []),
-  ]
   const overworldNodes: Overworld2DNode[] = [
     ...nodes.map(t => ({
       id: t.id as string,
@@ -1905,90 +1750,37 @@ function ModulePath({ moduleCode, onBack, onStart, user }: {
         }]
       : []),
   ]
-  const nextModule = COURSE_MODULES.find(m => m.index === mod.index + 1) ?? null
+  const isCurrentCompleted = Boolean(allDone && (!finalNode || finalNode.status === 'completed'))
   const requestSelect = (id: string) => {
     const t = [...nodes, ...(finalNode ? [finalNode] : [])].find(x => x.id === id)
     if (!t) return
-    setFocusNodeId(id) // movimiento físico dentro del mundo 3D
+    setFocusNodeId(id)
     if (t.state === 'locked') { toast.info('Completa los nodos anteriores para desbloquear este'); return }
     const open = () => onStart({ topicId: t.id, title: t.title, module: moduleCode, isFinal: t.order === 99 })
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) { open(); return }
     if (flyTimer.current) clearTimeout(flyTimer.current)
-    flyTimer.current = setTimeout(open, 950)
+    flyTimer.current = setTimeout(open, 550)
   }
 
   return (
-    <div className="space-y-5">
-      <button onClick={onBack} className="text-[11px] font-extrabold tracking-[0.18em] uppercase text-[var(--color-muted-navy)] hover:text-[#0C7E71] transition-colors flex items-center gap-1.5">
-        <MS name="arrow_back" className="!text-[14px]" /> Inicio
-      </button>
-      <div className="axiom-banner p-5 lg:p-6">
-        <p className="text-[11px] font-extrabold tracking-[0.18em] uppercase opacity-90">Módulo {mod.index} · Nivel {mod.level} · {doneCount} de {lessons.length} nodos</p>
-        <h2 className="text-2xl lg:text-3xl font-extrabold mt-1">{mod.title}</h2>
-        <p className="text-xs mt-1 opacity-90">{mod.purpose} · {mod.hours} horas de práctica</p>
-        <div className="axiom-track mt-4"><div style={{ width: `${pct}%` }} /></div>
-        {finalNode?.status === 'completed' && (
-          <button onClick={() => setCertOpen(true)} className="cert-inline-btn">
-            <MS name="workspace_premium" className="!text-[15px]" /> Constancia del módulo {mod.index}
-          </button>
-        )}
-      </div>
-      <div className="axiom-ruler" />
+    <>
       <PathScene
         variant={sceneVariantFor(mod.index)}
-        d3nodes={d3nodes}
         overworldNodes={overworldNodes}
         moduleInfo={mod}
-        nextModule={nextModule}
+        allModulesStatus={allModulesStatus}
         doneCount={doneCount}
         totalCount={lessons.length}
+        isCurrentCompleted={isCurrentCompleted}
         focusId={focusNodeId}
+        onBack={onBack}
+        onOpenCert={() => setCertOpen(true)}
         onNodeSelect={requestSelect}
-        hud={<PathHud nodes={nodes} finalNode={finalNode} onPick={requestSelect} />}
-      >
-        <div className="flex flex-col items-center py-4">
-          {nodes.map((t: any, i: number) => (
-            <Fragment key={t.id}>
-              {i > 0 && <PathConnector dir={i % 2 === 1 ? 'lr' : 'rl'} />}
-              <div className="flex flex-col items-center gap-2" style={{ transform: `translateX(${i % 2 === 0 ? -70 : 70}px)` }}>
-                <button
-                  onClick={() => startTopic(t)}
-                  className={`axiom-node ${t.state === 'done' ? 'done' : t.state === 'current' ? 'current' : 'locked'}`}
-                  aria-label={t.title}
-                >
-                  <MS name={t.state === 'locked' ? 'lock' : (t.icon || 'school')} className="!text-[28px]" />
-                  {t.state === 'done' && <span className="axiom-node-check"><MS name="check" className="!text-[15px]" /></span>}
-                  {t.state !== 'done' && <span className="axiom-node-badge">{i + 1}</span>}
-                </button>
-                <div className="node-title">{t.title}</div>
-                <div className="node-sub">
-                  {t.state === 'locked' ? 'Nodo bloqueado' : t.state === 'current' && t.sessionsCount > 0 ? `Sesión ${t.sessionsCount + 1} de 3` : lessonSubtitle(t.block)}
-                </div>
-              </div>
-            </Fragment>
-          ))}
-          {finalNode && (
-            <Fragment>
-              <PathConnector dir={(nodes.length - 1) % 2 === 0 ? 'lr' : 'rl'} />
-              <div className="flex flex-col items-center gap-2" style={{ transform: `translateX(${nodes.length % 2 === 0 ? -70 : 70}px)` }}>
-                <button
-                  onClick={() => startTopic(finalNode)}
-                  className="axiom-node final"
-                  aria-label="Evaluación final"
-                >
-                  <MS name={finalNode.state === 'locked' ? 'lock' : 'auto_awesome'} className="!text-[28px]" />
-                  {finalNode.state === 'locked' && <span className="axiom-node-badge">{nodes.length + 1}</span>}
-                </button>
-                <div className="node-title">Evaluación final</div>
-                <div className="node-sub">Termina el camino</div>
-                <span className="pill-ia">Usa IA</span>
-              </div>
-            </Fragment>
-          )}
-        </div>
-      </PathScene>
+        onSelectModule={onSelectModule}
+        hud={<PathHud nodes={nodes} finalNode={finalNode} />}
+      />
       {certOpen && mod && <CertificateOverlay user={user} mod={mod} onClose={() => setCertOpen(false)} />}
-    </div>
+    </>
   )
 }
 

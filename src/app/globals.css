@@ -1888,10 +1888,10 @@
 .has-3d-scene .landscape3d { pointer-events: auto; }
 /* el diorama cabe en un viewport: el wrapper deja de ser sticky sobredimensionado */
 .has-3d-scene .landscape3d { position: relative; top: 0; height: 100%; margin-bottom: 0; }
-.path-scene.has-3d-scene { height: calc(100vh - 345px); }
+.path-scene.has-3d-scene { height: calc(100vh - 135px); min-height: 580px; }
 .has-3d-scene .scene-content { position: static; padding: 10px 16px 16px; pointer-events: none; }
 .has-3d-scene .lesson-dock { pointer-events: auto; }
-@media (max-width: 900px) { .path-scene.has-3d-scene { height: 62vh; } }
+@media (max-width: 900px) { .path-scene.has-3d-scene { height: 76vh; min-height: 460px; } }
 
 .landscape3d .d3d-hint {
   position: absolute; top: 14px; right: 54px; z-index: 4;

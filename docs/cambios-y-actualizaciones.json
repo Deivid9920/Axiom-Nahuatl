@@ -129,6 +129,110 @@
         "Cambios y Actualizaciones.docx"
       ],
       "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    },
+    {
+      "id": "CHG-007",
+      "date": "2026-11-23 14:26",
+      "category": "Afinamiento Archipiélago 2D (PixiJS v8)",
+      "title": "Archipiélago completo de 10 islas en pantalla grande (solo 2D), barco de avance entre módulos y mascota Axi sosteniendo el nivel actual",
+      "summary": "Se eliminó el banner superior del módulo y toda la vista 3D de niveles, se amplió el mapa al máximo del viewport mostrando los 10 módulos como islas separadas, se agregó el barco animado que cruza a la siguiente isla al completar el módulo y se colocó a la mascota Axi junto al nivel en curso sosteniéndolo.",
+      "details": [
+        "Se eliminaron el banner superior de módulo (.axiom-banner con 'Supervivencia lingüística' y .axiom-ruler) y toda referencia a Landscape3D / botón 'Ver en 3D' en src/app/page.tsx para trabajar exclusivamente en 2D.",
+        "Se amplió el área del mapa en src/app/globals.css (.path-scene.has-3d-scene ahora ocupa calc(100vh - 135px) con min-height: 580px).",
+        "Se rediseñó src/components/overworld2d.tsx como un archipiélago navegable con los 10 módulos (Isla I a Isla X, A1.1 a B1.2) bien separados (1920 px de distancia y vaivén vertical orgánico), cada uno con diseño/orientación/paleta propia, selector rápido I–X y vista previa en gris al hacer clic en cualquier isla bloqueada.",
+        "Se agregó un barco caricatura estilo Cuphead que permanece anclado en la isla actual y zarpa por la ruta marítima punteada dejando estela hacia la Isla N+1 al completarse el módulo, simulando el desbloqueo del siguiente nivel.",
+        "Se dibujó a la mascota oficial de Axiom (el lémur Axi con cola anillada y pañuelo coral) justo al lado del medallón del nivel cursando con sus patitas apoyadas sosteniéndolo y animación suave."
+      ],
+      "files": [
+        "src/app/page.tsx",
+        "src/app/globals.css",
+        "src/components/overworld2d.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    },
+    {
+      "id": "CHG-008",
+      "date": "2026-11-23 14:47",
+      "category": "Mundo 2.5D de Inicio, Inmersión Pantalla Completa y Mascota Axi",
+      "title": "Nuevo Mundo 2D/2.5D en Inicio, mapa de islas a pantalla completa, lémur Axi ilustrado y eliminación de la barra inferior de niveles",
+      "summary": "Se reemplazó el inicio tradicional ('Hello · Hola admin' y lista de tarjetas) por un mundo ilustrado 2D con perspectiva 2.5D donde las 10 islas se reparten por todo el globo junto a las métricas del usuario, se amplió el mapa de islas a pantalla completa sin el dock inferior de 14 botones y se rediseñó al lémur Axi en alta definición.",
+      "details": [
+        "Se creó src/lib/world/axi-mascot-svg.ts con una ilustración 2D estilizada en SVG del lémur Axi (pelaje con degradado, orejas rosadas, ojos dorados con brillo, pañuelo coral con nudo, cola esponjosa anillada y patitas abrazando el medallón del nivel).",
+        "Se creó src/components/worldmap2d.tsx (PixiJS v8) como nueva pantalla de Inicio: mundo/globo 2D con relieve tipo 3D (esfera oceánica, meridianos, sombras de profundidad y rutas marítimas) con las 10 islas repartidas en todo el mundo, métricas compactas (islas completadas, progreso global, meta diaria y repaso SRS) y acceso directo al mapa de islas al hacer clic en la isla en curso.",
+        "Se eliminó el bloque 'Hello · Hola admin' y la lista vertical de tarjetas en DashboardTab dentro de src/app/page.tsx.",
+        "Se convirtió la vista de islas (PathScene / Overworld2D) a pantalla completa inmersiva (fixed inset-0 h-screen w-screen) con botón flotante 'Mundo' en la esquina superior izquierda.",
+        "Se eliminó por completo la barra inferior de 14 botones numerados (.lesson-dock) en PathHud para dejar el mapa completamente despejado."
+      ],
+      "files": [
+        "src/lib/world/axi-mascot-svg.ts",
+        "src/components/worldmap2d.tsx",
+        "src/components/overworld2d.tsx",
+        "src/app/page.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    },
+    {
+      "id": "CHG-009",
+      "date": "2026-11-23 15:34",
+      "category": "Globo Tu Ruta México → York y Transición de Liana con Nubes",
+      "title": "Rediseño del Mundo de Inicio estilo 'Tu ruta México → York' + animación de Axi en liana abriendo nubes hacia la isla",
+      "summary": "Se rediseñó el mundo de Inicio como un globo circular 2D/2.5D inspirado en 'Tu ruta México → York' con continentes pintados y las 10 paradas interactivas, y se creó la animación de transición donde Axi cruza en una liana hacia la izquierda abriendo las nubes a los lados para revelar la isla.",
+      "details": [
+        "Se rediseñó src/components/worldmap2d.tsx con un globo circular 2D/2.5D con continentes pintados en acuarela (América/México, Océano Atlántico y Reino Unido/York), casquetes polares, iluminación esférica, arco punteado con las 10 mini-islas y los 10 chips clicables de paradas ('1. Casa · México' a '10. York Minster · Meta B1').",
+        "Se creó AXI_VINE_DATA_URI en src/lib/world/axi-mascot-svg.ts con una ilustración dinámica de Axi colgado de la liana mirando hacia la izquierda con su cola anillada y pañuelo coral ondeando al viento.",
+        "Se creó src/components/lemur-vine-transition.tsx (Framer Motion) que cubre brevemente con nubes de acuarela, hace cruzar a Axi en una liana verde con hojas de derecha a izquierda y abre ambos bancos de nubes hacia izquierda y derecha detrás de él para revelar el mapa completo de la isla.",
+        "Se integró la transición en src/app/page.tsx al seleccionar cualquier isla desde el Mundo de Inicio."
+      ],
+      "files": [
+        "src/lib/world/axi-mascot-svg.ts",
+        "src/components/lemur-vine-transition.tsx",
+        "src/components/worldmap2d.tsx",
+        "src/app/page.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    },
+    {
+      "id": "CHG-010",
+      "date": "2026-11-23 15:50",
+      "category": "Globo 2D Giratorio 360° y Nubes Cartoon",
+      "title": "Planeta 2D giratorio 360° con proyección esférica real y nubes estilo cartoon Cuphead con tinta cacao",
+      "summary": "Se convirtió el globo 2D de Inicio en un planeta giratorio 360° (arrastrable como un globo 3D con inercia y proyección esférica real de continentes e islas) y se rediseñaron todas las nubes (transición de liana, globo e islas) con estética cartoon 1930s con contornos gruesos de tinta cacao.",
+      "details": [
+        "Se implementó proyección ortográfica esférica real (lat, lon) en src/components/worldmap2d.tsx: ahora el usuario puede girar el planeta 360° arrastrando con ratón o táctil (con inercia suave), viendo rotar continentes, meridianos, rutas punteadas y las 10 mini-islas que aparecen/desaparecen detrás del horizonte.",
+        "Se vinculó cada chip inferior de parada para girar suavemente el planeta hacia esa isla al hacer clic (y abrirla con doble clic o clic directo en la isla).",
+        "Se rediseñaron las nubes de la transición de liana en src/components/lemur-vine-transition.tsx (CartoonCloudBank) y las nubes flotantes de src/components/worldmap2d.tsx y src/components/overworld2d.tsx con contorno grueso en tinta cacao (#2D2A26), relleno crema (#FAF3E7), sombras cel-shaded y rizos caricatura estilo Cuphead."
+      ],
+      "files": [
+        "src/components/worldmap2d.tsx",
+        "src/components/lemur-vine-transition.tsx",
+        "src/components/overworld2d.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    },
+    {
+      "id": "CHG-011",
+      "date": "2026-11-23 16:00",
+      "category": "Globo 2D Giratorio — Islas sobre Masas Verdes",
+      "title": "Alojamiento de cada isla sobre su propia masa verde orgánica con costa arenosa en el globo 360°",
+      "summary": "Se sustituyeron los bloques continentales genéricos por 10 masas verdes orgánicas individuales con borde de arena ubicadas exactamente debajo de cada una de las 10 islas en el globo 2D giratorio.",
+      "details": [
+        "Se creó buildOrganicIslandLand() en src/components/worldmap2d.tsx para generar una silueta orgánica de costa arenosa y tierra verde proyectada sobre la esfera debajo de cada parada (en verde cálido para islas desbloqueadas y gris suave para islas bloqueadas).",
+        "Se redistribuyeron las 10 coordenadas (lat, lon) alrededor de los 360° del planeta para que cada isla destaque rodeada de océano azul y conectada por la ruta punteada."
+      ],
+      "files": [
+        "src/components/worldmap2d.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · verificado visualmente)"
     }
   ]
 }
