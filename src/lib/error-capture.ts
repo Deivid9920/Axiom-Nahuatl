@@ -1,3 +1,5 @@
+// AXIOM — Error capture (for Engineering Agent consumption)
+
 import { db } from '@/lib/db'
 import { events } from '@/lib/events'
 import { logger } from '@/lib/observability'

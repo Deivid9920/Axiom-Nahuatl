@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { db } from '@/lib/db'
 import { requirePermission } from '@/lib/auth'
-import { processLearningRequest, type LilResponse } from '@/lib/lil'
+import { processLearningRequest } from '@/lib/lil'
 import { checkFeatureAccess, checkSessionLimit } from '@/lib/billing'
 import { events } from '@/lib/events'
 import { type Module } from '@/lib/types'
@@ -12,7 +12,7 @@ import '@/lib/agents/agents'  // side-effect: registers all 5 agents + event sub
 
 // Start a new learning session
 export async function POST(req: NextRequest) {
-  const authCheck = await requirePermission('module.listening.use')
+  const authCheck = await requirePermission('module.conversation.use')
   if (!authCheck.ok) {
     return NextResponse.json({ error: authCheck.message }, { status: authCheck.status })
   }
@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
   }
 
   const schema = z.object({
-    module: z.enum(['listening', 'pronunciation']),
+    module: z.enum(['conversation', 'text', 'voice']),
     mode: z.string(),
     domain: z.string().optional(),
     cefrTarget: z.string().optional(),
@@ -40,10 +40,18 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: parse.error.issues[0].message }, { status: 400 })
   }
 
-  // Feature gating: ambos módulos son de voz y requieren el plan con audio.
-  const access = await checkFeatureAccess(ctx.userId, 'voiceEnabled')
-  if (!access.allowed) {
-    return NextResponse.json({ error: access.reason }, { status: 403 })
+  // Feature gating
+  if (parse.data.module === 'voice') {
+    const access = await checkFeatureAccess(ctx.userId, 'voiceEnabled')
+    if (!access.allowed) {
+      return NextResponse.json({ error: access.reason }, { status: 403 })
+    }
+  }
+  if (parse.data.module === 'text' && parse.data.mode === 'professional_writing') {
+    const access = await checkFeatureAccess(ctx.userId, 'ragEnabled')
+    if (!access.allowed) {
+      return NextResponse.json({ error: access.reason }, { status: 403 })
+    }
   }
 
   // Session limit check
@@ -85,7 +93,7 @@ export async function POST(req: NextRequest) {
   })
 
   // If first message provided, process it immediately
-  let firstResponse: LilResponse | null = null
+  let firstResponse: Awaited<ReturnType<typeof processLearningRequest>> | null = null
   if (parse.data.message) {
     try {
       firstResponse = await processLearningRequest({
@@ -94,6 +102,7 @@ export async function POST(req: NextRequest) {
         module: parse.data.module as Module,
         mode: parse.data.mode,
         userMessage: parse.data.message,
+        taskConfig: parse.data.scenarioConfig,
       })
       await events.publish({
         name: 'MESSAGE_SENT',
@@ -129,7 +138,7 @@ export async function POST(req: NextRequest) {
 
 // Send a message to an existing session
 export async function PUT(req: NextRequest) {
-  const authCheck = await requirePermission('module.listening.use')
+  const authCheck = await requirePermission('module.conversation.use')
   if (!authCheck.ok) {
     return NextResponse.json({ error: authCheck.message }, { status: authCheck.status })
   }
@@ -191,6 +200,7 @@ export async function PUT(req: NextRequest) {
       module: session.module as Module,
       mode: session.mode,
       userMessage: parse.data.message,
+      taskConfig: session.scenarioConfig ? JSON.parse(session.scenarioConfig) : undefined,
     })
 
     return NextResponse.json({
@@ -206,7 +216,7 @@ export async function PUT(req: NextRequest) {
 
 // End a session (triggers Learning Agent evaluation)
 export async function PATCH(req: NextRequest) {
-  const authCheck = await requirePermission('module.listening.use')
+  const authCheck = await requirePermission('module.conversation.use')
   if (!authCheck.ok) {
     return NextResponse.json({ error: authCheck.message }, { status: authCheck.status })
   }
@@ -264,7 +274,7 @@ export async function PATCH(req: NextRequest) {
 
 // List user's sessions
 export async function GET(req: NextRequest) {
-  const authCheck = await requirePermission('module.listening.use')
+  const authCheck = await requirePermission('module.conversation.use')
   if (!authCheck.ok) {
     return NextResponse.json({ error: authCheck.message }, { status: authCheck.status })
   }

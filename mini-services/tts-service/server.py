@@ -18,84 +18,12 @@ Usage:
 
 import json
 import base64
-import hashlib
-import hmac
 import io
 import os
 import sys
-import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 PORT = 3004
-
-
-BIND_HOST = os.environ.get('TTS_BIND_HOST', '127.0.0.1')
-
-ALLOWED_ORIGINS = [
-    o.strip()
-    for o in os.environ.get('ALLOWED_ORIGINS', 'http://localhost:3000,http://localhost:81').split(',')
-    if o.strip()
-]
-
-JWT_SECRET = os.environ.get('JWT_SECRET', '')
-JWT_ISSUER = 'axiom.app'
-JWT_AUDIENCE = 'axiom.web'
-
-if not JWT_SECRET:
-    if os.environ.get('NODE_ENV') == 'production':
-        print('[tts-service] FATAL: JWT_SECRET es obligatorio en produccion', file=sys.stderr)
-        sys.exit(1)
-    print('[tts-service] AVISO: JWT_SECRET no definido; usando el respaldo de desarrollo')
-    JWT_SECRET = 'axiom-dev-secret-DO-NOT-USE-IN-PRODUCTION-32chars-min'
-
-
-def _b64url_decode(segment):
-    padding = '=' * (-len(segment) % 4)
-    return base64.urlsafe_b64decode(segment + padding)
-
-
-def verify_access_token(token):
-    """Verifica un JWT HS256 emitido por la aplicacion. Devuelve el userId o None.
-
-    Se valida firma, algoritmo, emisor, audiencia, tipo y expiracion. La
-    comparacion de la firma es en tiempo constante.
-    """
-    try:
-        header_b64, payload_b64, signature_b64 = token.split('.')
-    except ValueError:
-        return None
-
-    try:
-        header = json.loads(_b64url_decode(header_b64))
-        payload = json.loads(_b64url_decode(payload_b64))
-        signature = _b64url_decode(signature_b64)
-    except Exception:
-        return None
-
-    # Lista blanca de algoritmo: nunca aceptar 'none' ni asimetricos.
-    if header.get('alg') != 'HS256':
-        return None
-
-    expected = hmac.new(
-        JWT_SECRET.encode('utf-8'),
-        f'{header_b64}.{payload_b64}'.encode('ascii'),
-        hashlib.sha256,
-    ).digest()
-    if not hmac.compare_digest(signature, expected):
-        return None
-
-    if payload.get('iss') != JWT_ISSUER:
-        return None
-    if payload.get('aud') != JWT_AUDIENCE:
-        return None
-    if payload.get('type') != 'access':
-        return None
-
-    exp = payload.get('exp')
-    if not isinstance(exp, (int, float)) or exp < time.time():
-        return None
-
-    return payload.get('sub')
 
 # Lazy-load Kokoro (heavy import)
 _tts_model = None
@@ -105,9 +33,8 @@ def get_tts_model():
     if _tts_model is None:
         try:
             from kokoro import KPipeline
-            # 'e' = español: fonología más cercana disponible en Kokoro (no hay voz náhuatl)
-            _tts_model = KPipeline(lang_code='e')
-            print(f"[tts-service] Kokoro model loaded successfully (Spanish pipeline for náhuatl)")
+            _tts_model = KPipeline(lang_code='a')  # 'a' = American English
+            print(f"[tts-service] Kokoro model loaded successfully")
         except ImportError:
             print(f"[tts-service] WARNING: Kokoro not installed. Install with: pip install kokoro")
             print(f"[tts-service] Falling back to simple response.")
@@ -129,23 +56,13 @@ class TTSHandler(BaseHTTPRequestHandler):
             self.send_error(404, "Not found")
             return
 
-        auth_header = self.headers.get('Authorization', '')
-        if not auth_header.startswith('Bearer '):
-            self._send_json(401, {"error": "Autenticacion requerida"})
-            return
-
-        user_id = verify_access_token(auth_header[7:].strip())
-        if not user_id:
-            self._send_json(401, {"error": "Token invalido o expirado"})
-            return
-
         try:
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length).decode('utf-8')
             data = json.loads(body)
 
             text = data.get('text', '').strip()
-            voice = data.get('voice', 'ef_dora')  # default Spanish voice (closest to náhuatl phonology)
+            voice = data.get('voice', 'af_heart')  # default natural voice
             speed = float(data.get('speed', 1.0))
 
             if not text:
@@ -159,6 +76,7 @@ class TTSHandler(BaseHTTPRequestHandler):
             model = get_tts_model()
 
             if model is False:
+                # Kokoro not installed — return empty audio with warning
                 self._send_json(200, {
                     "audio": "",
                     "format": "wav",
@@ -231,13 +149,9 @@ class TTSHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(data).encode('utf-8'))
 
     def _send_cors_headers(self):
-        origin = self.headers.get('Origin', '')
-        if origin in ALLOWED_ORIGINS:
-            self.send_header('Access-Control-Allow-Origin', origin)
-            self.send_header('Vary', 'Origin')
-        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
         self.send_header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-        self.send_header('X-Content-Type-Options', 'nosniff')
 
     def log_message(self, format, *args):
         # Suppress default logging, use our own
@@ -247,8 +161,7 @@ class TTSHandler(BaseHTTPRequestHandler):
 if __name__ == '__main__':
     print(f"[tts-service] Starting on port {PORT}")
     print(f"[tts-service] Kokoro TTS will be loaded on first request")
-    print(f"[tts-service] Bind {BIND_HOST}:{PORT}")
-    server = HTTPServer((BIND_HOST, PORT), TTSHandler)
+    server = HTTPServer(('0.0.0.0', PORT), TTSHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:

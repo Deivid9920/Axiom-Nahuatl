@@ -103,7 +103,6 @@ export async function POST(req: NextRequest) {
     cefrLevel: parse.data.cefrLevel,
     source: 'vocabulary',
     sourceId: entry.id,
-    ownerId: null,
     difficultyScore: parse.data.difficultyScore ?? 0.5,
   })
 

@@ -33,7 +33,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 # El archivo de ejemplo SÍ se versiona: documenta las variables sin secretos.
-.env.example
+!.env.example
 
 # vercel
 .vercel
@@ -54,19 +54,12 @@ prompt
 server.log
 # Skills directory
 /skills/
-# SECURITY (AX-12): bases de datos locales y almacenamiento de usuarios
-# Contienen hashes de contraseña, correos, pagos y transcripciones de sesión.
-db/*
-!db/.gitkeep
+# base de datos local
 *.db
-*.db-journal
-*.sqlite
-*.sqlite3
 storage/
-
-# Paquetes de distribución generados por scripts/package-release.sh
-dist-release/
 # Reportes locales de Playwright
 test-results/
 playwright-report/
 coverage/
+# Archivos temporales de Office/Word
+~$*

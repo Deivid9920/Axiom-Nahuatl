@@ -5,7 +5,7 @@ import { logger } from '@/lib/observability'
 
 // Get user progress (theta trajectory, sessions, vocabulary)
 export async function GET(req: NextRequest) {
-  const authCheck = await requirePermission('module.listening.use')
+  const authCheck = await requirePermission('module.conversation.use')
   if (!authCheck.ok) {
     return NextResponse.json({ error: authCheck.message }, { status: authCheck.status })
   }
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000)
 
-  const [profile, sessions, evaluations, vocabCount, dueReviews] = await Promise.all([
+  const [profile, sessions, evaluations, vocabCount, dueReviews, practiceSessions] = await Promise.all([
     db.userProfile.findUnique({ where: { userId: ctx.userId } }),
     db.learningSession.findMany({
       where: { userId: ctx.userId, startedAt: { gt: since } },
@@ -34,6 +34,12 @@ export async function GET(req: NextRequest) {
         userId: ctx.userId,
         nextReviewAt: { lte: new Date() },
       },
+    }),
+    // R15: sesiones de práctica inmersiva (Session Composer)
+    db.practiceSession.findMany({
+      where: { userId: ctx.userId, createdAt: { gt: since } },
+      orderBy: { createdAt: 'asc' },
+      take: 120,
     }),
   ])
 
@@ -64,6 +70,17 @@ export async function GET(req: NextRequest) {
     } catch {}
   }
 
+  // R15 — práctica inmersiva: minutos de hoy + tendencia de Avance
+  const todayKey = new Date().toISOString().slice(0, 10)
+  const todaySeconds = practiceSessions
+    .filter(s => s.createdAt.toISOString().slice(0, 10) === todayKey)
+    .reduce((acc, s) => acc + s.secondsSpent, 0)
+  const practiceTrajectory = practiceSessions.map(s => ({
+    date: s.createdAt.toISOString().slice(0, 10),
+    avance: Math.round(((s.thetaAfter + 3) / 5) * 100),
+    minutes: Math.round(s.secondsSpent / 60),
+  }))
+
   return NextResponse.json({
     ok: true,
     progress: {
@@ -93,6 +110,10 @@ export async function GET(req: NextRequest) {
       sessionsPerDay,
       moduleBreakdown,
       errorTypes,
+      // R15
+      practiceSessions: practiceSessions.length,
+      todaySeconds,
+      practiceTrajectory,
     },
   })
 }

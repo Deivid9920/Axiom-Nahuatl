@@ -7,7 +7,8 @@ export default defineConfig({
     globals: true,
     include: ['tests/unit/**/*.test.ts'],
     setupFiles: ['./tests/setup.ts'],
-    // La suite es rápida (~3 s), así que la ejecución secuencial no cuesta nada.
+    // Los archivos comparten una sola BD SQLite con un beforeEach que limpia
+    // tablas; en paralelo un archivo puede borrar filas que otro está usando.
     fileParallelism: false,
     coverage: {
       provider: 'v8',

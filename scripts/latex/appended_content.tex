@@ -1,0 +1,1847 @@
+
+% APÉNDICES ADICIONALES — Código completo y ejemplos detallados
+
+\chapter{Esquema Prisma Completo}
+\label{app:prisma-schema}
+
+El esquema completo de base de datos de Axiom consta de 1,047 líneas definiendo 30+ modelos. A continuación se presenta el esquema íntegro, organizado por grupos de entidades.
+
+\section{Grupo 1: Autenticación y Usuarios}
+
+\begin{lstlisting}[style=sql,caption={Modelos de autenticación y usuarios}]
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastLoginAt     DateTime?
+
+  profile         UserProfile?
+  subscriptions   Subscription[]
+  sessions        AuthSession[]
+  learningSessions LearningSession[]
+  documents       UserDocument[]
+  agentMemories   AgentMemory[]
+  agentRuns       AgentRun[]
+  auditLogs       AuditLog[]
+  events          SystemEvent[]      @relation("EventProducer")
+  consumedEvents  SystemEvent[]      @relation("EventConsumer")
+  payments        Payment[]
+  featureFlags    FeatureFlagAssignment[]
+  experimentAssignments ExperimentAssignment[]
+  progress        UserProgress[]
+  vocabularyItems VocabularyItem[]
+  reviewSchedules ReviewSchedule[]
+  errorEvents     ErrorEvent[]
+  metricPoints    MetricPoint[]
+  resetTokens     PasswordResetToken[]
+  userRoles       UserRole[]
+  typingResults   TypingResult[]
+  translationResults TranslationResult[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+
+model AuthSession {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jwtJti       String   @unique
+  refreshHash  String
+  userAgent    String?
+  ipAddress    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  revokedAt    DateTime?
+
+  @@index([userId, createdAt])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model UserRole {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roleName  String   // "user" | "admin" | "content_editor" | "support"
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  @@unique([userId, roleName])
+  @@index([roleName])
+}
+\end{lstlisting}
+
+\section{Grupo 2: RBAC}
+
+\begin{lstlisting}[style=sql,caption={Modelos de control de acceso (RBAC)}]
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique  // "user" | "admin" | "content_editor" | "support"
+  description String?
+  isSystem    Boolean  @default(false)  // cannot be deleted
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  permissions RolePermission[]
+  userRoles   UserRole[]
+}
+
+model Permission {
+  id          String   @id @default(cuid())
+  code        String   @unique  // e.g. "module.create", "admin.users.read"
+  description String?
+  resource    String   // "module" | "user" | "billing" | ...
+  action      String   // "create" | "read" | "update" | "delete" | "*"
+  createdAt   DateTime @default(now())
+  roles       RolePermission[]
+}
+
+model RolePermission {
+  id           String   @id @default(cuid())
+  roleId       String
+  role         Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permissionId String
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime @default(now())
+
+  @@unique([roleId, permissionId])
+}
+\end{lstlisting}
+
+\section{Grupo 3: Perfil y Progreso}
+
+\begin{lstlisting}[style=sql,caption={Modelos de perfil y progreso del usuario}]
+model UserProfile {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName     String?
+  avatarUrl       String?
+  preferredName   String?
+  nativeLanguage  String   @default("es")
+  targetLanguage  String   @default("en")
+  profession      String?  // "software" | "finance" | "manufacturing" | ...
+  cefrLevel       String   @default("A1")  // initial, updated by IRT
+  cefrTheta       Float    @default(-3.0)  // IRT logit scale
+  cefrThetaSE     Float    @default(1.0)   // standard error
+  totalXP         Int      @default(0)
+  currentStreak   Int      @default(0)
+  longestStreak   Int      @default(0)
+  lastActivityAt  DateTime?
+  preferences     String?  // JSON: { theme, notifications, ... }
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model UserProgress {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date            DateTime  // daily aggregation
+  module          String   // "conversation" | "text" | "voice" | "typing" | "translation"
+  sessionsCount   Int      @default(0)
+  messagesCount   Int      @default(0)
+  xpEarned        Int      @default(0)
+  durationSec     Int      @default(0)
+  errorsCount     Int      @default(0)
+  correctionsCount Int     @default(0)
+  avgAccuracy     Float?
+  metadata        String?  // JSON
+
+  @@unique([userId, date, module])
+  @@index([userId, date])
+}
+\end{lstlisting}
+
+\section{Grupo 4: Suscripciones y Pagos}
+
+\begin{lstlisting}[style=sql,caption={Modelos de planes, suscripciones y pagos}]
+model Plan {
+  id           String   @id @default(cuid())
+  code         String   @unique  // "basic", "pro", "team", "enterprise"
+  name         String
+  description  String?
+  priceMx      Int      // MXN cents
+  interval     String   // "month" | "year"
+  features     String   // JSON array
+  limits       String?  // JSON: { maxDocuments, dailyMessages, ... }
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  planId          String
+  plan            Plan     @relation(fields: [planId], references: [id])
+  status          String   // "trialing" | "active" | "past_due" | "canceled"
+  mpPreapprovalId String?
+  currentPeriodEnd DateTime?
+  trialEndsAt     DateTime?
+  canceledAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  payments        Payment[]
+
+  @@index([userId, status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  subscriptionId  String?
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
+  mpPaymentId     String?
+  amountMx        Int
+  currency        String   @default("MXN")
+  status          String   // "pending" | "approved" | "rejected" | "refunded"
+  paymentMethod   String?
+  failureReason   String?
+  processedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+  @@index([mpPaymentId])
+}
+\end{lstlisting}
+
+\section{Grupo 5: Sesiones de Aprendizaje y Mensajes}
+
+\begin{lstlisting}[style=sql,caption={Modelos de sesiones de aprendizaje y mensajes}]
+model LearningSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module      String   // "conversation" | "text" | "voice" | "typing" | "translation"
+  mode        String?  // sub-mode
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  durationSec Int      @default(0)
+  status      String   @default("active")
+  metadata    String?
+  messages    Message[]
+
+  @@index([userId, startedAt])
+  @@index([status])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role        String   // "user" | "assistant" | "system"
+  content     String
+  createdAt   DateTime @default(now())
+  tokensIn    Int      @default(0)
+  tokensOut   Int      @default(0)
+  latencyMs   Int      @default(0)
+  modelUsed   String?
+  metadata    String?  // JSON
+
+  @@index([sessionId, createdAt])
+}
+\end{lstlisting}
+
+\section{Grupo 6: Documentos y Chunks RAG}
+
+\begin{lstlisting}[style=sql,caption={Modelos de documentos de usuario y chunks RAG}]
+model UserDocument {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String
+  status       String   @default("pending")
+  chunkCount   Int      @default(0)
+  totalTokens  Int      @default(0)
+  language     String?
+  domain       String?
+  uploadedAt   DateTime @default(now())
+  processedAt  DateTime?
+  chunks       DocumentChunk[]
+
+  @@index([userId, uploadedAt])
+  @@index([status])
+}
+
+model DocumentChunk {
+  id           String   @id @default(cuid())
+  documentId   String
+  document     UserDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content      String
+  tokens       Int
+  position     Int
+  embedding    String?  // JSON float[] 1024 dims
+  metadata     String?
+
+  @@index([documentId, position])
+}
+\end{lstlisting}
+
+\section{Grupo 7: Memoria y Agentes}
+
+\begin{lstlisting}[style=sql,caption={Modelos de memoria y ejecución de agentes}]
+model AgentMemory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "preference" | "fact" | "error_pattern" | "goal"
+  tag       String?
+  content   String
+  confidence Float   @default(1.0)
+  source    String?  // "inferred" | "explicit" | "system"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime?
+
+  @@index([userId, type])
+  @@index([userId, tag])
+}
+
+model AgentRun {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  agentName  String   // "ai_tutor" | "learning" | "analytics" | "product" | "engineering"
+  taskId     String
+  status     String   // "running" | "completed" | "failed"
+  input      String?  // JSON
+  output     String?  // JSON
+  error      String?
+  durationMs Int?
+  tokensUsed Int      @default(0)
+  costUsd    Float    @default(0)
+  startedAt  DateTime @default(now())
+  endedAt    DateTime?
+  toolCalls  AgentToolCall[]
+
+  @@index([userId, startedAt])
+  @@index([agentName, startedAt])
+  @@index([status])
+}
+
+model AgentToolCall {
+  id          String   @id @default(cuid())
+  agentRunId  String
+  agentRun    AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  toolName    String
+  arguments   String   // JSON
+  result      String?  // JSON
+  durationMs  Int
+  success     Boolean
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([agentRunId])
+  @@index([toolName, createdAt])
+}
+\end{lstlisting}
+
+\section{Grupo 8: Vocabulario y Repaso Espaciado}
+
+\begin{lstlisting}[style=sql,caption={Modelos de vocabulario y programación de repasos FSRS}]
+model VocabularyItem {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  word         String
+  translation  String
+  example      String?
+  cefrLevel    String   // "A1" | "A2" | "B1" | "B2" | "C1" | "C2"
+  domain       String?  // "software" | "finance" | ...
+  source       String?  // "manual" | "extracted_from_session" | "curated"
+  stability    Float    @default(0.5)  // FSRS S
+  difficulty   Float    @default(5.0)  // FSRS D
+  reviewCount  Int      @default(0)
+  lapseCount   Int      @default(0)
+  lastReviewAt DateTime?
+  createdAt    DateTime @default(now())
+  schedules    ReviewSchedule[]
+
+  @@index([userId, cefrLevel])
+  @@index([userId, domain])
+}
+
+model ReviewSchedule {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vocabularyId String
+  vocabulary   VocabularyItem @relation(fields: [vocabularyId], references: [id], onDelete: Cascade)
+  dueDate      DateTime
+  priority     Float    @default(1.0)
+  status       String   @default("pending")  // "pending" | "completed" | "skipped"
+  completedAt  DateTime?
+  grade        Int?     // 1-4 FSRS grade
+  createdAt    DateTime @default(now())
+
+  @@index([userId, dueDate])
+  @@index([status, dueDate])
+}
+\end{lstlisting}
+
+\section{Grupo 9: Eventos, Auditoría y Métricas}
+
+\begin{lstlisting}[style=sql,caption={Modelos de eventos del sistema, auditoría y métricas}]
+model SystemEvent {
+  id           String   @id @default(cuid())
+  type         String   // 15 event types
+  producerId   String?
+  producer     User?    @relation("EventProducer", fields: [producerId], references: [id])
+  consumerId   String?
+  consumer     User?    @relation("EventConsumer", fields: [consumerId], references: [id])
+  payload      String   // JSON
+  processedAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([processedAt])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  resource    String?
+  resourceId  String?
+  ipAddress   String?
+  userAgent   String?
+  requestId   String?
+  metadata    String?
+  success     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model ErrorEvent {
+  id           String   @id @default(cuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+  type         String   // "api_error" | "agent_error" | "llm_error" | "rag_error"
+  message      String
+  stack        String?
+  requestId    String?
+  statusCode   Int?
+  path         String?
+  metadata     String?
+  resolved     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([type, createdAt])
+  @@index([resolved, createdAt])
+}
+
+model MetricPoint {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  metric    String   // "api.latency_p95" | "agent.runs" | "llm.tokens" | ...
+  value     Float
+  unit      String?  // "ms" | "count" | "tokens" | "usd"
+  tags      String?  // JSON: { endpoint, agent, model, ... }
+  createdAt DateTime @default(now())
+
+  @@index([metric, createdAt])
+  @@index([userId, metric, createdAt])
+}
+\end{lstlisting}
+
+\section{Grupo 10: Feature Flags y Experimentos}
+
+\begin{lstlisting}[style=sql,caption={Modelos de feature flags y experimentos A/B}]
+model FeatureFlag {
+  id          String   @id @default(cuid())
+  key         String   @unique  // e.g. "voice_module_v2"
+  description String?
+  enabled     Boolean  @default(false)
+  rolloutPct  Int      @default(0)  // 0-100
+  config      String?  // JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assignments FeatureFlagAssignment[]
+}
+
+model FeatureFlagAssignment {
+  id        String   @id @default(cuid())
+  flagId    String
+  flag      FeatureFlag @relation(fields: [flagId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enabled   Boolean
+  reason    String?  // "rollout" | "manual" | "cohort"
+  createdAt DateTime @default(now())
+
+  @@unique([flagId, userId])
+}
+
+model Experiment {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  hypothesis  String?
+  status      String   @default("draft")  // "draft" | "running" | "completed" | "stopped"
+  variants    String   // JSON: [{ name: "control", weight: 50 }, ...]
+  metrics     String?  // JSON: list of metric keys to track
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assignments ExperimentAssignment[]
+}
+
+model ExperimentAssignment {
+  id            String   @id @default(cuid())
+  experimentId  String
+  experiment    Experiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  variant       String
+  assignedAt    DateTime @default(now())
+
+  @@unique([experimentId, userId])
+  @@index([experimentId, variant])
+}
+\end{lstlisting}
+
+\section{Grupo 11: Resultados de Algoritmos}
+
+\begin{lstlisting}[style=sql,caption={Modelos para resultados de mecanografía y traducción}]
+model TypingResult {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetText        String
+  wpm               Float
+  rawWpm            Float
+  accuracy          Float
+  consistency       Float
+  errorCount        Int
+  correctedErrors   Int
+  uncorrectedErrors Int
+  totalKeystrokes   Int
+  correctKeystrokes Int
+  durationSec       Float
+  skillScore        Float
+  cefrLevel         String
+  errors            String?  // JSON array
+  createdAt         DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([cefrLevel])
+}
+
+model TranslationResult {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceText      String
+  targetText      String
+  referenceText   String
+  bleuScore       Float
+  levenshteinNorm Float
+  lengthScore     Float
+  compositeScore  Float
+  cefrLevel       String
+  errors          String?  // JSON: { omissions, additions, substitutions }
+  createdAt       DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([cefrLevel])
+}
+\end{lstlisting}
+
+\chapter{Implementación Completa de Algoritmos}
+\label{app:algorithms-code}
+
+\section{Evaluación de mecanografía (extracto)}
+
+\begin{lstlisting}[style=ts,caption={Función principal evaluateTyping}]
+export function evaluateTyping(
+  targetText: string,
+  keystrokes: TypingKeystroke[],
+  durationSec: number
+): TypingResult {
+  const totalChars = targetText.length
+  const totalKeystrokes = keystrokes.length
+
+  let correctKeystrokes = 0
+  let errorCount = 0
+  let correctedErrors = 0
+  const errors: TypingResult['errors'] = []
+
+  for (const ks of keystrokes) {
+    if (ks.correct) {
+      correctKeystrokes++
+    } else {
+      errorCount++
+      if (ks.corrected) correctedErrors++
+      errors.push({
+        char: ks.char,
+        expected: ks.expected,
+        typed: ks.typed || ks.char,
+        position: ks.position,
+        timestamp: ks.timestamp,
+      })
+    }
+  }
+
+  const uncorrectedErrors = errorCount - correctedErrors
+  const minutes = durationSec / 60
+  const rawWpm = minutes > 0 ? (totalKeystrokes / 5) / minutes : 0
+  const accuracy = totalKeystrokes > 0 ? correctKeystrokes / totalKeystrokes : 0
+
+  // Penalize uncorrected errors
+  const errorPenalty = totalChars > 0 ? uncorrectedErrors / totalChars : 0
+  const wpm = rawWpm * Math.max(0, 1 - errorPenalty)
+
+  // Consistency: based on inter-key interval std dev
+  const intervals: number[] = []
+  for (let i = 1; i < keystrokes.length; i++) {
+    const interval = keystrokes[i].timestamp - keystrokes[i - 1].timestamp
+    if (interval > 0 && interval < 5000) intervals.push(interval)
+  }
+
+  let consistency = 1.0
+  if (intervals.length > 5) {
+    const mean = intervals.reduce((a, b) => a + b, 0) / intervals.length
+    const variance = intervals.reduce((a, b) => a + (b - mean) ** 2, 0) / intervals.length
+    const stdDev = Math.sqrt(variance)
+    const cv = stdDev / mean  // coefficient of variation
+    consistency = Math.max(0, 1 - cv)
+  }
+
+  // Composite skill score
+  const normWpm = Math.min(1, wpm / 80)
+  const skillScore = Math.round(
+    100 * (0.4 * normWpm + 0.3 * accuracy + 0.3 * consistency)
+  )
+
+  const cefrLevel = inferCefrFromTyping(wpm, accuracy)
+
+  return {
+    wpm: Math.round(wpm * 10) / 10,
+    rawWpm: Math.round(rawWpm * 10) / 10,
+    accuracy: Math.round(accuracy * 1000) / 1000,
+    consistency: Math.round(consistency * 1000) / 1000,
+    errorCount,
+    correctedErrors,
+    uncorrectedErrors,
+    totalKeystrokes,
+    correctKeystrokes,
+    durationSec,
+    skillScore,
+    cefrLevel,
+    errors,
+  }
+}
+
+function inferCefrFromTyping(wpm: number, accuracy: number): string {
+  const thresholds = [
+    { level: 'C2', wpm: 65, acc: 0.92 },
+    { level: 'C1', wpm: 55, acc: 0.90 },
+    { level: 'B2', wpm: 45, acc: 0.85 },
+    { level: 'B1', wpm: 35, acc: 0.80 },
+    { level: 'A2', wpm: 25, acc: 0.75 },
+    { level: 'A1', wpm: 15, acc: 0.70 },
+  ]
+  for (const t of thresholds) {
+    if (wpm >= t.wpm && accuracy >= t.acc) return t.level
+  }
+  return 'A0'
+}
+\end{lstlisting}
+
+\section{BLEU score simplificado}
+
+\begin{lstlisting}[style=ts,caption={Cálculo de BLEU score para traducción}]
+function computeBLEU(hypothesis: string[], reference: string[], maxN: number = 4): number {
+  if (hypothesis.length === 0 || reference.length === 0) return 0
+
+  let logSum = 0
+  let weight = 1 / maxN
+
+  for (let n = 1; n <= maxN; n++) {
+    const hypNgrams = getNgrams(hypothesis, n)
+    const refNgrams = getNgrams(reference, n)
+
+    if (hypNgrams.length === 0) {
+      logSum += Math.log(weight * 0)
+      continue
+    }
+
+    // Modified precision: clip hyp counts by ref counts
+    const refCounts: Map<string, number> = new Map()
+    for (const g of refNgrams) {
+      refCounts.set(g, (refCounts.get(g) ?? 0) + 1)
+    }
+
+    const hypCounts: Map<string, number> = new Map()
+    for (const g of hypNgrams) {
+      hypCounts.set(g, (hypCounts.get(g) ?? 0) + 1)
+    }
+
+    let clipped = 0
+    let total = 0
+    for (const [g, c] of hypCounts) {
+      const refC = refCounts.get(g) ?? 0
+      clipped += Math.min(c, refC)
+      total += c
+    }
+
+    const precision = total > 0 ? clipped / total : 0
+    // Smooth: add small epsilon to avoid log(0)
+    logSum += Math.log(weight * (precision + 1e-10))
+  }
+
+  // Brevity penalty
+  const c = hypothesis.length
+  const r = reference.length
+  const bp = c > r ? 1 : Math.exp(1 - r / Math.max(c, 1))
+
+  return bp * Math.exp(logSum)
+}
+
+function getNgrams(tokens: string[], n: number): string[] {
+  const ngrams: string[] = []
+  for (let i = 0; i <= tokens.length - n; i++) {
+    ngrams.push(tokens.slice(i, i + n).join(' '))
+  }
+  return ngrams
+}
+\end{lstlisting}
+
+\chapter{Implementación del Orquestador de Agentes}
+\label{app:orchestrator-code}
+
+\begin{lstlisting}[style=ts,caption={AgentOrchestrator completo (extracto principal)}]
+import { prisma } from '@/lib/db'
+import { logger } from '@/lib/observability'
+import { events } from '@/lib/events'
+import { AGENTS } from './agents'
+import { TOOLS, ToolName } from './tools'
+
+export type AgentName = 'ai_tutor' | 'learning' | 'analytics' | 'product' | 'engineering'
+
+export interface AgentContext {
+  userId: string
+  sessionId?: string
+  systemPrompt?: string
+  userMessage?: string
+  conversationHistory?: Array<{ role: string; content: string }>
+}
+
+export interface AgentRunResult {
+  runId: string
+  response: string
+  toolCalls: Array<{ name: string; success: boolean; durationMs: number }>
+  tokensUsed: number
+  durationMs: number
+}
+
+const MAX_ITERATIONS = 5
+
+export class AgentOrchestrator {
+  private agents: Record<AgentName, AgentDefinition>
+  private tools: Record<string, ToolDefinition>
+
+  constructor() {
+    this.agents = AGENTS
+    this.tools = TOOLS
+  }
+
+  async dispatch(input: {
+    agent: AgentName
+    task: string
+    context: AgentContext
+    tools?: string[]
+  }): Promise<AgentRunResult> {
+    const run = await prisma.agentRun.create({
+      data: {
+        userId: input.context.userId,
+        agentName: input.agent,
+        taskId: input.task,
+        status: 'running',
+        input: JSON.stringify({ task: input.task, context: input.context }),
+        startedAt: new Date(),
+      },
+    })
+
+    const log = logger.with({
+      agentRunId: run.id,
+      agentName: input.agent,
+      userId: input.context.userId,
+    })
+
+    try {
+      const agent = this.agents[input.agent]
+      if (!agent) throw new Error(`Unknown agent: ${input.agent}`)
+
+      const allowedTools = (input.tools ?? agent.defaultTools)
+        .map(name => this.tools[name])
+        .filter(Boolean)
+
+      const systemPrompt = input.context.systemPrompt ?? agent.buildPrompt(input.context)
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        ...(input.context.conversationHistory ?? []),
+        { role: 'user', content: input.task },
+      ]
+
+      const startTime = Date.now()
+      const toolCalls: Array<{ name: string; success: boolean; durationMs: number }> = []
+      let totalTokens = 0
+      let finalResponse = ''
+      let iterations = 0
+
+      while (iterations < MAX_ITERATIONS) {
+        iterations++
+        const llmResult = await callLLM({
+          messages,
+          tools: allowedTools.map(t => t.schema),
+          model: agent.preferredModel,
+        })
+
+        totalTokens += llmResult.usage.total_tokens
+
+        if (llmResult.tool_calls && llmResult.tool_calls.length > 0) {
+          messages.push({
+            role: 'assistant',
+            content: llmResult.content ?? '',
+            tool_calls: llmResult.tool_calls,
+          })
+
+          for (const tc of llmResult.tool_calls) {
+            const tool = this.tools[tc.function.name]
+            if (!tool) continue
+
+            const toolStart = Date.now()
+            let toolResult
+            let success = true
+            try {
+              const args = JSON.parse(tc.function.arguments)
+              toolResult = await tool.execute(args, input.context)
+            } catch (err) {
+              success = false
+              toolResult = { error: err.message }
+            }
+            const toolDuration = Date.now() - toolStart
+
+            toolCalls.push({
+              name: tc.function.name,
+              success,
+              durationMs: toolDuration,
+            })
+
+            // Persist tool call
+            await prisma.agentToolCall.create({
+              data: {
+                agentRunId: run.id,
+                toolName: tc.function.name,
+                arguments: tc.function.arguments,
+                result: JSON.stringify(toolResult),
+                durationMs: toolDuration,
+                success,
+                error: success ? null : toolResult.error,
+              },
+            })
+
+            messages.push({
+              role: 'tool',
+              tool_call_id: tc.id,
+              content: JSON.stringify(toolResult),
+            })
+          }
+          // Continue loop for next iteration
+        } else {
+          // No tool calls: final response
+          finalResponse = llmResult.content ?? ''
+          break
+        }
+      }
+
+      if (!finalResponse) {
+        finalResponse = 'Lo siento, no pude completar la solicitud. ¿Puedes reformular?'
+      }
+
+      const totalDuration = Date.now() - startTime
+
+      await prisma.agentRun.update({
+        where: { id: run.id },
+        data: {
+          status: 'completed',
+          output: JSON.stringify({ response: finalResponse, toolCalls }),
+          durationMs: totalDuration,
+          tokensUsed: totalTokens,
+          costUsd: estimateCost(totalTokens, agent.preferredModel),
+          endedAt: new Date(),
+        },
+      })
+
+      await events.emit('agent.run.completed', {
+        agentRunId: run.id,
+        agentName: input.agent,
+        userId: input.context.userId,
+        durationMs: totalDuration,
+        tokensUsed: totalTokens,
+        toolCallsCount: toolCalls.length,
+      })
+
+      log.info('agent_completed', { durationMs: totalDuration, tokens: totalTokens })
+
+      return {
+        runId: run.id,
+        response: finalResponse,
+        toolCalls,
+        tokensUsed: totalTokens,
+        durationMs: totalDuration,
+      }
+    } catch (error) {
+      log.error('agent_failed', error)
+      await prisma.agentRun.update({
+        where: { id: run.id },
+        data: {
+          status: 'failed',
+          error: error.message,
+          endedAt: new Date(),
+        },
+      })
+      await events.emit('agent.run.failed', {
+        agentRunId: run.id,
+        agentName: input.agent,
+        userId: input.context.userId,
+        error: error.message,
+      })
+      throw error
+    }
+  }
+}
+
+function estimateCost(tokens: number, model: string): number {
+  const rates: Record<string, { input: number; output: number }> = {
+    'deepseek/deepseek-chat-v4-flash': { input: 0.14, output: 0.28 },
+    'deepseek/deepseek-chat-v4-pro': { input: 0.435, output: 0.87 },
+    'openai/gpt-5.4-mini': { input: 0.15, output: 0.60 },
+    'openai/gpt-5.4': { input: 4.50, output: 12.00 },
+  }
+  const rate = rates[model] ?? rates['deepseek/deepseek-chat-v4-flash']
+  // Assume 50/50 input/output split
+  const inputTokens = tokens * 0.5
+  const outputTokens = tokens * 0.5
+  return (inputTokens * rate.input + outputTokens * rate.output) / 1_000_000
+}
+\end{lstlisting}
+
+\chapter{Implementación del Sistema de Memoria}
+\label{app:memory-code}
+
+\begin{lstlisting}[style=ts,caption={Sistema de memoria dual (corto y largo plazo)}]
+import { prisma } from '@/lib/db'
+
+// Short-term memory: in-process, per session
+const shortTermStore = new Map<string, ConversationTurn[]>()
+
+interface ConversationTurn {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: number
+}
+
+const SHORT_TERM_TTL_MS = 30 * 60 * 1000  // 30 minutes
+const MAX_TURNS = 10
+
+export class MemorySystem {
+  // Short-term memory
+  async addToShortTerm(sessionId: string, turn: ConversationTurn): Promise<void> {
+    let turns = shortTermStore.get(sessionId) ?? []
+    turns.push(turn)
+    if (turns.length > MAX_TURNS) {
+      turns = turns.slice(-MAX_TURNS)
+    }
+    shortTermStore.set(sessionId, turns)
+  }
+
+  async getShortTerm(sessionId: string): Promise<ConversationTurn[]> {
+    const turns = shortTermStore.get(sessionId) ?? []
+    const now = Date.now()
+    return turns.filter(t => now - t.timestamp < SHORT_TERM_TTL_MS)
+  }
+
+  async clearShortTerm(sessionId: string): Promise<void> {
+    shortTermStore.delete(sessionId)
+  }
+
+  // Long-term memory (persisted)
+  async writeLongTerm(input: {
+    userId: string
+    type: 'preference' | 'fact' | 'error_pattern' | 'goal'
+    tag?: string
+    content: string
+    confidence?: number
+    source?: 'inferred' | 'explicit' | 'system'
+    expiresAt?: Date
+  }): Promise<void> {
+    await prisma.agentMemory.create({
+      data: {
+        userId: input.userId,
+        type: input.type,
+        tag: input.tag ?? null,
+        content: input.content,
+        confidence: input.confidence ?? 1.0,
+        source: input.source ?? 'system',
+        expiresAt: input.expiresAt ?? null,
+      },
+    })
+  }
+
+  async readLongTerm(input: {
+    userId: string
+    type?: string
+    tag?: string
+    limit?: number
+  }): Promise<AgentMemory[]> {
+    const where: any = { userId: input.userId }
+    if (input.type) where.type = input.type
+    if (input.tag) where.tag = input.tag
+    return prisma.agentMemory.findMany({
+      where,
+      orderBy: { updatedAt: 'desc' },
+      take: input.limit ?? 20,
+    })
+  }
+
+  // Memory compression for context
+  async compressForPrompt(sessionId: string, userId: string): Promise<string> {
+    const shortTerm = await this.getShortTerm(sessionId)
+    const longTermFacts = await this.readLongTerm({
+      userId,
+      type: 'fact',
+      limit: 5,
+    })
+    const longTermPrefs = await this.readLongTerm({
+      userId,
+      type: 'preference',
+      limit: 3,
+    })
+    const longTermErrors = await this.readLongTerm({
+      userId,
+      type: 'error_pattern',
+      limit: 3,
+    })
+
+    const parts: string[] = []
+
+    if (longTermFacts.length > 0) {
+      parts.push('Known facts about user:')
+      longTermFacts.forEach(f => parts.push(`  - ${f.content}`))
+    }
+
+    if (longTermPrefs.length > 0) {
+      parts.push('User preferences:')
+      longTermPrefs.forEach(p => parts.push(`  - ${p.content}`))
+    }
+
+    if (longTermErrors.length > 0) {
+      parts.push('Recent error patterns:')
+      longTermErrors.forEach(e => parts.push(`  - ${e.content}`))
+    }
+
+    if (shortTerm.length > 0) {
+      parts.push('Recent conversation:')
+      shortTerm.forEach(t => parts.push(`  ${t.role}: ${t.content.slice(0, 200)}`))
+    }
+
+    return parts.join('\n')
+  }
+}
+
+export const memory = new MemorySystem()
+\end{lstlisting}
+
+\chapter{Implementación del VectorStore RAG}
+\label{app:vectorstore-code}
+
+\begin{lstlisting}[style=ts,caption={VectorStore en memoria con interfaz compatible Qdrant}]
+export interface VectorPoint {
+  id: string
+  vector: number[]
+  payload: Record<string, any>
+}
+
+export interface VectorMatch {
+  id: string
+  score: number
+  payload: Record<string, any>
+}
+
+export interface SearchOptions {
+  topK: number
+  filter?: Record<string, any>
+  scoreThreshold?: number
+}
+
+export interface CollectionConfig {
+  vectorSize: number
+  distance: 'cosine' | 'euclidean' | 'dot'
+}
+
+interface Collection {
+  config: CollectionConfig
+  points: Map<string, VectorPoint>
+  hnswIndex?: HNSWIndex
+}
+
+// Simplified HNSW (Hierarchical Navigable Small World) implementation
+class HNSWIndex {
+  private layers: Map<number, Map<string, string[]>> = new Map()
+  private entryPoint: string | null = null
+  private maxLayer = 0
+
+  constructor(
+    private M: number = 16,
+    private efConstruction: number = 200,
+    private ml: number = 1 / Math.log(16)
+  ) {}
+
+  add(point: VectorPoint): void {
+    const level = Math.floor(-Math.log(Math.random()) * this.ml)
+    // Implementation: insert point at each layer up to `level`
+    // (simplified for documentation; full impl in src/lib/rag/vector-store.ts)
+  }
+
+  search(query: number[], topK: number, ef: number = 50): Array<{ id: string; score: number }> {
+    // Implementation: greedy search through layers
+    return []
+  }
+}
+
+export class InMemoryVectorStore {
+  private collections = new Map<string, Collection>()
+
+  async createCollection(name: string, config: CollectionConfig): Promise<void> {
+    if (this.collections.has(name)) {
+      throw new Error(`Collection ${name} already exists`)
+    }
+    this.collections.set(name, {
+      config,
+      points: new Map(),
+      hnswIndex: new HNSWIndex(),
+    })
+  }
+
+  async upsert(collection: string, points: VectorPoint[]): Promise<void> {
+    const col = this.getCollection(collection)
+    for (const p of points) {
+      col.points.set(p.id, p)
+      col.hnswIndex?.add(p)
+    }
+  }
+
+  async search(
+    collection: string,
+    query: number[],
+    options: SearchOptions
+  ): Promise<VectorMatch[]> {
+    const col = this.getCollection(collection)
+
+    // Brute-force for small collections, HNSW for large
+    const useHNSW = col.points.size > 1000
+
+    let candidates: Array<{ id: string; score: number }>
+
+    if (useHNSW && col.hnswIndex) {
+      candidates = col.hnswIndex.search(query, options.topK * 2)
+    } else {
+      candidates = []
+      for (const [id, point] of col.points) {
+        // Apply metadata filter
+        if (options.filter && !matchesFilter(point.payload, options.filter)) {
+          continue
+        }
+        const score = cosineSimilarity(query, point.vector)
+        candidates.push({ id, score })
+      }
+    }
+
+    // Sort by score descending
+    candidates.sort((a, b) => b.score - a.score)
+
+    // Apply score threshold
+    const threshold = options.scoreThreshold ?? 0
+    const filtered = candidates.filter(c => c.score >= threshold)
+
+    // Take top K
+    const topK = filtered.slice(0, options.topK)
+
+    // Fetch payloads
+    return topK.map(({ id, score }) => {
+      const point = col.points.get(id)!
+      return { id, score, payload: point.payload }
+    })
+  }
+
+  async delete(collection: string, ids: string[]): Promise<void> {
+    const col = this.getCollection(collection)
+    for (const id of ids) {
+      col.points.delete(id)
+    }
+  }
+
+  private getCollection(name: string): Collection {
+    const col = this.collections.get(name)
+    if (!col) throw new Error(`Collection ${name} not found`)
+    return col
+  }
+}
+
+function cosineSimilarity(a: number[], b: number[]): number {
+  let dot = 0
+  let normA = 0
+  let normB = 0
+  for (let i = 0; i < a.length; i++) {
+    dot += a[i] * b[i]
+    normA += a[i] * a[i]
+    normB += b[i] * b[i]
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB)
+  return denom > 0 ? dot / denom : 0
+}
+
+function matchesFilter(payload: Record<string, any>, filter: Record<string, any>): boolean {
+  for (const [key, value] of Object.entries(filter)) {
+    if (payload[key] !== value) return false
+  }
+  return true
+}
+
+export const vectorStore = new InMemoryVectorStore()
+\end{lstlisting}
+
+\chapter{Ejemplos de Requests y Responses API}
+\label{app:api-examples}
+
+\section{Autenticación — Registro}
+
+\textbf{Request:}
+\begin{lstlisting}[style=bash]
+POST /api/auth HTTP/1.1
+Content-Type: application/json
+
+{
+  "action": "register",
+  "email": "usuario@ejemplo.mx",
+  "password": "SecurePass123!",
+  "name": "Ana García"
+}
+\end{lstlisting}
+
+\textbf{Response (201 Created):}
+\begin{lstlisting}[style=bash]
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "user": {
+    "id": "clx8y9z2k0000p3v2n5k6r8m9",
+    "email": "usuario@ejemplo.mx",
+    "name": "Ana García",
+    "createdAt": "2026-08-15T02:30:00.000Z"
+  },
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "refreshToken": "clx8y9z2k0001p3v2n5k6r8m9_ref",
+  "expiresIn": 900
+}
+\end{lstlisting}
+
+\section{Conversación — Iniciar sesión y enviar mensaje}
+
+\textbf{Request:}
+\begin{lstlisting}[style=bash]
+POST /api/modules HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "module": "conversation",
+  "mode": "general",
+  "message": "Hello! I want to practice introducing myself."
+}
+\end{lstlisting}
+
+\textbf{Response (201 Created):}
+\begin{lstlisting}[style=bash]
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "sessionId": "clx8y9z3k0002p3v2n5k6r8ma",
+  "message": {
+    "id": "clx8y9z3k0003p3v2n5k6r8mb",
+    "role": "assistant",
+    "content": "Hi Ana! That sounds wonderful. Let's practice introductions...",
+    "createdAt": "2026-08-15T02:31:00.000Z",
+    "metadata": {
+      "agentRunId": "clx8y9z3k0004p3v2n5k6r8mc",
+      "tokensIn": 350,
+      "tokensOut": 120,
+      "latencyMs": 1850,
+      "model": "deepseek/deepseek-chat-v4-flash",
+      "ragChunksUsed": 2
+    }
+  },
+  "corrections": [],
+  "progressUpdate": {
+    "xpDelta": 10,
+    "totalXP": 10
+  }
+}
+\end{lstlisting}
+
+\section{Mecanografía — Evaluar ejercicio}
+
+\textbf{Request:}
+\begin{lstlisting}[style=bash]
+POST /api/typing HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "targetText": "The quick brown fox jumps over the lazy dog.",
+  "keystrokes": [
+    {"char": "T", "expected": "T", "position": 0, "timestamp": 0, "correct": true, "corrected": false},
+    {"char": "h", "expected": "h", "position": 1, "timestamp": 120, "correct": true, "corrected": false},
+    {"char": "e", "expected": "e", "position": 2, "timestamp": 180, "correct": true, "corrected": false}
+    // ... more keystrokes
+  ],
+  "durationSec": 12.5
+}
+\end{lstlisting}
+
+\textbf{Response (201 Created):}
+\begin{lstlisting}[style=bash]
+HTTP/1.1 201 Created
+Content-Type: application/json
+
+{
+  "result": {
+    "wpm": 42.3,
+    "rawWpm": 48.5,
+    "accuracy": 0.87,
+    "consistency": 0.92,
+    "errorCount": 6,
+    "correctedErrors": 4,
+    "uncorrectedErrors": 2,
+    "totalKeystrokes": 44,
+    "correctKeystrokes": 38,
+    "durationSec": 12.5,
+    "skillScore": 78,
+    "cefrLevel": "B1",
+    "errors": [
+      {"char": "x", "expected": "x", "typed": "z", "position": 15, "timestamp": 3200},
+      {"char": "o", "expected": "o", "typed": "i", "position": 22, "timestamp": 4500}
+    ]
+  }
+}
+\end{lstlisting}
+
+\section{Facturación — Crear suscripción}
+
+\textbf{Request:}
+\begin{lstlisting}[style=bash]
+POST /api/billing HTTP/1.1
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+Content-Type: application/json
+
+{
+  "action": "create_subscription",
+  "planCode": "pro"
+}
+\end{lstlisting}
+
+\textbf{Response (200 OK):}
+\begin{lstlisting}[style=bash]
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "subscription": {
+    "id": "clx8y9z4k0005p3v2n5k6r8md",
+    "status": "pending",
+    "plan": {
+      "code": "pro",
+      "name": "Pro",
+      "priceMx": 39900,
+      "interval": "month"
+    }
+  },
+  "checkoutUrl": "https://www.mercadopago.com.mx/checkout/v1/redirect?pref_id=clx8y9z4k...",
+  "mpPreferenceId": "clx8y9z4k0006p3v2n5k6r8me"
+}
+\end{lstlisting}
+
+\section{Webhook de Mercado Pago}
+
+\textbf{Request (desde Mercado Pago):}
+\begin{lstlisting}[style=bash]
+POST /api/billing/webhook HTTP/1.1
+Content-Type: application/json
+X-Signature: t=1723698600,v1=abc123def456...
+
+{
+  "type": "payment",
+  "data": {
+    "id": "clx8y9z5k0007p3v2n5k6r8mf"
+  },
+  "action": "payment.approved",
+  "user_id": "axiom_merchant_123"
+}
+\end{lstlisting}
+
+\textbf{Response (200 OK):}
+\begin{lstlisting}[style=bash]
+HTTP/1.1 200 OK
+Content-Type: application/json
+
+{
+  "status": "processed",
+  "paymentId": "clx8y9z5k0008p3v2n5k6r8mg",
+  "subscriptionStatus": "active"
+}
+\end{lstlisting}
+
+\chapter{Configuración de Testing}
+\label{app:testing-config}
+
+\section{Vitest — Configuración}
+
+\begin{lstlisting}[style=ts,caption={vitest.config.ts}]
+import { defineConfig } from 'vitest/config'
+import { resolve } from 'path'
+
+export default defineConfig({
+  test: {
+    environment: 'node',
+    globals: true,
+    setupFiles: ['./tests/setup.ts'],
+    include: ['tests/unit/**/*.test.ts'],
+    exclude: ['node_modules', '.next', 'tests/e2e/**'],
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      exclude: [
+        'node_modules/',
+        '.next/',
+        'tests/**',
+        '**/*.config.ts',
+        '**/*.d.ts',
+        'src/app/api/**/route.ts',  // covered by E2E
+      ],
+      thresholds: {
+        lines: 70,
+        functions: 70,
+        branches: 60,
+        statements: 70,
+      },
+    },
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        singleThread: false,
+        maxThreads: 4,
+      },
+    },
+  },
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
+})
+\end{lstlisting}
+
+\section{Playwright — Configuración}
+
+\begin{lstlisting}[style=ts,caption={playwright.config.ts}]
+import { defineConfig, devices } from '@playwright/test'
+
+export default defineConfig({
+  testDir: './tests/e2e',
+  fullyParallel: false,  // sequential to avoid DB conflicts
+  forbidOnly: !!process.env.CI,
+  retries: process.env.CI ? 2 : 0,
+  workers: 1,
+  reporter: [
+    ['html', { open: 'never' }],
+    ['json', { outputFile: 'test-results/e2e-results.json' }],
+    ...(process.env.CI ? [['github']] : []),
+  ],
+  use: {
+    baseURL: process.env.E2E_BASE_URL ?? 'http://localhost:3000',
+    trace: 'on-first-retry',
+    screenshot: 'only-on-failure',
+    video: 'retain-on-failure',
+    actionTimeout: 10_000,
+    navigationTimeout: 30_000,
+  },
+  projects: [
+    {
+      name: 'chromium',
+      use: { ...devices['Desktop Chrome'] },
+    },
+  ],
+  webServer: process.env.CI ? {
+    command: 'bun run build && bun start',
+    port: 3000,
+    reuseExistingServer: false,
+    timeout: 120_000,
+  } : undefined,
+})
+\end{lstlisting}
+
+\section{k6 — Test de carga}
+
+\begin{lstlisting}[style=ts,caption={tests/load/api-load.js (extracto)}]
+import http from 'k6/http'
+import { check, sleep } from 'k6'
+import { Rate, Trend } from 'k6/metrics'
+
+const errorRate = new Rate('errors')
+const latencyTrend = new Trend('latency')
+
+export const options = {
+  scenarios: {
+    baseline: {
+      executor: 'constant-vus',
+      vus: 50,
+      duration: '5m',
+      exec: 'baselineScenario',
+    },
+    stress: {
+      executor: 'ramping-vus',
+      startVUs: 50,
+      stages: [
+        { duration: '2m', target: 200 },
+        { duration: '5m', target: 500 },
+        { duration: '2m', target: 500 },
+        { duration: '1m', target: 0 },
+      ],
+      exec: 'stressScenario',
+      startTime: '5m',
+    },
+    spike: {
+      executor: 'ramping-vus',
+      startVUs: 50,
+      stages: [
+        { duration: '30s', target: 50 },
+        { duration: '30s', target: 1000 },
+        { duration: '30s', target: 50 },
+      ],
+      exec: 'spikeScenario',
+      startTime: '15m',
+    },
+  },
+  thresholds: {
+    errors: ['rate<0.05'],
+    http_req_duration: ['p(95)<500', 'p(99)<1500'],
+  },
+}
+
+export function baselineScenario() {
+  const res = http.get('http://localhost:3000/api/curriculum', {
+    headers: { Authorization: `Bearer ${__ENV.TEST_TOKEN}` },
+  })
+  check(res, {
+    'status is 200': r => r.status === 200,
+    'response time < 200ms': r => r.timings.duration < 200,
+  })
+  errorRate.add(res.status !== 200)
+  latencyTrend.add(res.timings.duration)
+  sleep(1)
+}
+
+export function stressScenario() {
+  const payload = JSON.stringify({
+    module: 'conversation',
+    message: 'Hello, this is a load test message.',
+  })
+  const res = http.post('http://localhost:3000/api/modules', payload, {
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${__ENV.TEST_TOKEN}`,
+    },
+  })
+  check(res, {
+    'status is 201': r => r.status === 201,
+    'response time < 3000ms': r => r.timings.duration < 3000,
+  })
+  errorRate.add(res.status !== 201)
+  latencyTrend.add(res.timings.duration)
+  sleep(2)
+}
+
+export function spikeScenario() {
+  const res = http.get('http://localhost:3000/api/profile', {
+    headers: { Authorization: `Bearer ${__ENV.TEST_TOKEN}` },
+  })
+  check(res, { 'status is 200': r => r.status === 200 })
+  errorRate.add(res.status !== 200)
+}
+\end{lstlisting}
+
+\chapter{Matriz de Permisos RBAC}
+\label{app:rbac-matrix}
+
+\begin{longtable}{p{4.5cm}p{1.5cm}p{1.5cm}p{2cm}p{2cm}}
+\toprule
+\textbf{Permiso} & \textbf{user} & \textbf{admin} & \textbf{content\_editor} & \textbf{support} \\
+\midrule
+\endhead
+\texttt{module.conversation} & ✓ & ✓ & ✓ & --- \\
+\texttt{module.text} & ✓ & ✓ & ✓ & --- \\
+\texttt{module.voice} & ✓ & ✓ & ✓ & --- \\
+\texttt{module.typing} & ✓ & ✓ & ✓ & --- \\
+\texttt{module.translation} & ✓ & ✓ & ✓ & --- \\
+\texttt{profile.read} & ✓ & ✓ & --- & ✓ \\
+\texttt{profile.update} & ✓ & ✓ & --- & --- \\
+\texttt{document.upload} & ✓ & ✓ & --- & --- \\
+\texttt{document.read} & ✓ & ✓ & --- & --- \\
+\texttt{document.delete} & ✓ & ✓ & --- & --- \\
+\texttt{billing.read} & ✓ & ✓ & --- & --- \\
+\texttt{billing.manage} & ✓ & ✓ & --- & --- \\
+\texttt{curriculum.read} & ✓ & ✓ & ✓ & --- \\
+\texttt{curriculum.write} & --- & ✓ & ✓ & --- \\
+\texttt{vocabulary.read} & ✓ & ✓ & ✓ & --- \\
+\texttt{vocabulary.write} & --- & ✓ & ✓ & --- \\
+\texttt{grammar.read} & ✓ & ✓ & ✓ & --- \\
+\texttt{grammar.write} & --- & ✓ & ✓ & --- \\
+\texttt{admin.users.read} & --- & ✓ & --- & --- \\
+\texttt{admin.users.update} & --- & ✓ & --- & --- \\
+\texttt{admin.users.delete} & --- & ✓ & --- & --- \\
+\texttt{admin.flags.read} & --- & ✓ & --- & --- \\
+\texttt{admin.flags.update} & --- & ✓ & --- & --- \\
+\texttt{admin.errors.read} & --- & ✓ & --- & --- \\
+\texttt{admin.audit.read} & --- & ✓ & --- & ✓ \\
+\texttt{admin.metrics.read} & --- & ✓ & --- & --- \\
+\bottomrule
+\caption{Matriz completa de permisos RBAC}
+\end{longtable}
+
+\chapter{Catálogo de Eventos del Sistema}
+\label{app:events-catalog}
+
+El sistema define 15 tipos de eventos que cubren todas las acciones significativas. Cada evento se persiste en la tabla \texttt{SystemEvent} con payload JSON, y se emite también al bus en proceso para consumidores en tiempo real.
+
+\begin{longtable}{p{3.5cm}p{3cm}p{6.5cm}}
+\toprule
+\textbf{Tipo de evento} & \textbf{Productor} & \textbf{Payload ejemplo} \\
+\midrule
+\endhead
+\texttt{user.registered} & Auth API & \texttt{\{userId, email, source\}} \\
+\texttt{user.login} & Auth API & \texttt{\{userId, ip, userAgent\}} \\
+\texttt{user.logout} & Auth API & \texttt{\{userId, sessionId\}} \\
+\texttt{session.started} & Modules API & \texttt{\{userId, sessionId, module, mode\}} \\
+\texttt{session.completed} & Modules API & \texttt{\{sessionId, durationSec, xpEarned\}} \\
+\texttt{agent.run.started} & Orchestrator & \texttt{\{agentRunId, agentName, userId\}} \\
+\texttt{agent.run.completed} & Orchestrator & \texttt{\{agentRunId, durationMs, tokensUsed\}} \\
+\texttt{agent.run.failed} & Orchestrator & \texttt{\{agentRunId, error\}} \\
+\texttt{payment.created} & Billing API & \texttt{\{paymentId, amountMx, plan\}} \\
+\texttt{payment.approved} & MP Webhook & \texttt{\{paymentId, mpPaymentId\}} \\
+\texttt{payment.failed} & MP Webhook & \texttt{\{paymentId, failureReason\}} \\
+\texttt{document.uploaded} & Documents API & \texttt{\{documentId, filename, sizeBytes\}} \\
+\texttt{document.processed} & RAG Pipeline & \texttt{\{documentId, chunkCount, totalTokens\}} \\
+\texttt{document.failed} & RAG Pipeline & \texttt{\{documentId, error\}} \\
+\texttt{vocabulary.reviewed} & Learning Agent & \texttt{\{vocabularyId, grade, nextDueDate\}} \\
+\texttt{flag.toggled} & Admin API & \texttt{\{flagKey, enabled, userId\}} \\
+\bottomrule
+\caption{Catálogo completo de eventos del sistema}
+\end{longtable}
+
+\section{Patrón de consumo}
+Cada evento puede tener múltiples consumidores registrados. Por ejemplo, el evento \texttt{session.completed} es consumido por:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Learning Agent} — actualiza estabilidad FSRS de vocabulario relacionado
+\item \textbf{Analytics Agent} — recalcula engagement score del usuario
+\item \textbf{Product Agent} — incrementa contador de uso del módulo
+\item \textbf{Observability} — persiste métrica \texttt{session.duration}
+\end{itemize}
+
+\chapter{Guía de Despliegue a Producción}
+\label{app:deployment-guide}
+
+\section{Pre-flight checklist}
+Antes de desplegar Axiom a producción, verificar:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Variables de entorno}: todas las variables listadas en el capítulo 17 están configuradas en Vercel.
+\item \textbf{Base de datos}: PostgreSQL (Supabase Pro) creado y migración aplicada con \texttt{prisma migrate deploy}.
+\item \textbf{Seed}: roles, permisos y planes cargados con \texttt{bun run seed:prod}.
+\item \textbf{Mercado Pago}: aplicación de producción creada, webhook URL configurada a \texttt{https://axiom.mx/api/billing/webhook}, firma verificada.
+\item \textbf{Cloudflare R2}: bucket \texttt{axiom-documents-prod} creado con política de acceso privado.
+\item \textbf{OpenRouter}: API key de producción con saldo suficiente (\$100+ USD).
+\item \textbf{Observabilidad}: Sentry DSN configurado, PostHog project creado, Langfuse project creado.
+\item \textbf{Dominio}: \texttt{axiom.mx} apuntando a Vercel via DNS, SSL automático activo.
+\item \textbf{Términos legales}: política de privacidad y términos de servicio publicados en \texttt{/legal}.
+\item \textbf{Backups}: estrategia de backup PostgreSQL configurada (Supabase automated daily + PITR).
+\end{enumerate}
+
+\section{Procedimiento de despliegue}
+
+\begin{lstlisting}[style=bash,caption={Procedimiento de despliegue a producción}]
+# 1. Asegurar rama main actualizada
+git checkout main
+git pull origin main
+
+# 2. Ejecutar tests completos localmente
+bun run test:unit:run
+bun run test:e2e
+
+# 3. Build de producción local para verificar
+bun run build
+
+# 4. Push a main (trigger automático de Vercel)
+git push origin main
+
+# 5. Monitorear despliegue en Vercel dashboard
+# https://vercel.com/axiom/axiom/deployments
+
+# 6. Tras despliegue exitoso, ejecutar smoke tests
+curl -f https://axiom.mx/api/health || exit 1
+curl -f -H "Authorization: Bearer $SMOKE_TOKEN" https://axiom.mx/api/profile || exit 1
+curl -f https://axiom.mx/api/curriculum || exit 1
+
+# 7. Verificar Sentry sin nuevos errores
+# https://sentry.io/organizations/axiom/issues/
+
+# 8. Verificar métricas en Grafana
+# https://axiom.grafana.net/d/axiom-overview
+\end{lstlisting}
+
+\section{Procedimiento de rollback}
+
+\begin{lstlisting}[style=bash,caption={Rollback de emergencia}]
+# 1. En Vercel dashboard, identificar el último deployment exitoso
+# https://vercel.com/axiom/axiom/deployments
+
+# 2. Click "Promote to Production" en el deployment anterior
+
+# 3. Verificar smoke tests post-rollback
+curl -f https://axiom.mx/api/health
+
+# 4. Si el rollback fue por migración de DB, aplicar downgrade:
+bunx prisma migrate resolve --rolled-back <migration_name>
+
+# 5. Comunicar incidente en #axiom-incidents Slack channel
+# 6. Post-mortem dentro de 48 horas
+\end{lstlisting}
+
+\section{Monitoreo post-despliegue}
+Durante las primeras 2 horas tras un despliegue, vigilar:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Sentry}: errores nuevos (threshold: 0 errores críticos en 30 min)
+\item \textbf{Vercel Analytics}: latencia P95 (threshold: < 500ms)
+\item \textbf{Grafana}: throughput (esperado: 50--200 RPS)
+\item \textbf{Langfuse}: costos LLM (threshold: < \$5 USD/hora)
+\item \textbf{PostHog}: conversión de signup (threshold: > 30\%)
+\end{itemize}
+
+\chapter{Bitácora de Decisiones de Diseño}
+\label{app:design-decisions}
+
+\section{¿Por qué Next.js API Routes y no FastAPI desde el inicio?}
+La elección de Next.js API Routes para el MVP, a pesar de que el roadmap de Fase 3 contempla migrar a FastAPI, responde a un análisis de costo-beneficio para la Fase 1. Con Next.js API Routes, un solo ingeniero puede mantener tanto el frontend como el backend sin contexto switching entre Python y TypeScript, sin necesidad de orquestar dos despliegues separados, y sin gestionar dos pipelines de CI/CD. El costo de esta decisión es una escalabilidad técnica menor (Node.js es menos eficiente que Python/FastAPI para trabajo CPU-intensivo), pero en Fase 1 con ≤1,000 usuarios este no es el cuello de botella. El cuello de botella en Fase 1 es la velocidad de iteración del producto, no el rendimiento del servidor.
+
+\section{¿Por qué SQLite y no PostgreSQL desde el inicio?}
+SQLite es una base de datos adecuada para desarrollo local y pruebas porque no requiere un servidor separado, persiste en un único archivo, y permite que cada desarrollador tenga una copia aislada de la base de datos. En producción, sin embargo, SQLite tiene limitaciones significativas: no soporta escrituras concurrentes, no tiene replicación nativa, y su performance degrada con >100 conexiones simultáneas. La migración a PostgreSQL se planifica para Fase 2 cuando el número de usuarios pagos supere 50. Prisma hace que esta migración sea trivial: cambiar \texttt{provider = "sqlite"} a \texttt{provider = "postgresql"} en \texttt{schema.prisma} y ejecutar \texttt{prisma migrate deploy}.
+
+\section{¿Por qué Argon2id y no bcrypt?}
+Argon2id es el ganador de la Password Hashing Competition 2015 organizado por Openwall. Frente a bcrypt (diseñado en 1999), Argon2id ofrece: (1) resistencia a ataques GPU gracias a su uso intensivo de memoria (parámetro \texttt{memoryCost}); (2) resistencia a ataques de canal lateral gracias a su acceso a memoria independiente de los datos; (3) configuración flexible de los tres parámetros de costo (memoria, tiempo, paralelismo) lo que permite calibrar el balance seguridad/performance para el hardware específico. La desventaja es que Argon2id requiere más memoria que bcrypt (64 MB vs 4 MB por hash con parámetros estándar), lo que limita el número de hashes simultáneos que un servidor puede procesar. Para Axiom con <1,000 logins por hora, este no es un problema.
+
+\section{¿Por qué JWT y no sesiones server-side?}
+La elección de JWT sobre sesiones server-side tradicionales responde a tres consideraciones: (1) \textbf{escalabilidad horizontal} — con JWT, cualquier instancia del servidor puede validar un token sin consultar una tienda de sesiones compartida; (2) \textbf{compatibilidad con clientes móviles} — los tokens JWT son más fáciles de manejar desde apps móviles nativas que las cookies de sesión; (3) \textbf{simplificación del despliegue} — no requiere Redis u otra tienda de sesiones en MVP. La desventaja es la \textbf{revocación difícil}: una vez emitido un JWT, es válido hasta su expiración. La mitigación es la tabla \texttt{AuthSession} que persiste el \texttt{jti} (JWT ID) y permite invalidación server-side cuando el usuario hace logout o cuando se detecta actividad sospechosa.
+
+\section{¿Por qué DeepSeek V4 y no GPT-5?4?}
+La elección de DeepSeek V4-Flash como LLM principal del MVP responde al análisis de costo-beneficio. Con 1,000 usuarios activos consumiendo 50K tokens/día, el costo mensual con DeepSeek V4-Flash es de \$420 USD, mientras que con GPT-5.4 sería de \$13,500 USD. Esta diferencia de 32× se traduce en un impacto directo en el margen bruto (91\% con DeepSeek vs 67\% con GPT-5.4). La calidad de DeepSeek V4-Flash, aunque marginalmente inferior a GPT-5.4 en benchmarks (86--91\%), es suficiente para el caso de uso pedagógico de Axiom en niveles CEFR A2-B2. Para usuarios avanzados (C1-C2), se activará DeepSeek V4-Pro con calidad comparable o superior a GPT-5.4. La reversibilidad de esta decisión es total gracias al adaptador OpenRouter, que permite cambiar de modelo con una modificación de configuración.
+
+\section{¿Por qué Mercado Pago y no Stripe como procesador principal?}
+Mercado Pago domina el 80\% del mercado mexicano de pagos digitales y soporta métodos de pago locales que Stripe no cubre: OXXO (pago en efectivo en 50,000+ establecimientos), transferencias SPEI, y wallet de Mercado Pago. Además, Mercado Pago no requiere constituir una entidad legal en Estados Unidos, lo cual simplifica la operativa legal de Axiom como empresa mexicana. La desventaja es que Mercado Pago no soporta suscripciones internacionales, lo que limita la expansión a usuarios fuera de México. La mitigación es añadir Stripe en Fase 2 como procesador secundario para el 20\% internacional del volumen.
+
+\chapter{Lecciones Aprendidas}
+\label{app:lessons-learned}
+
+\section{Lo que funcionó bien}
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Tipado estricto TypeScript desde el inicio}. La configuración \texttt{strict: true} en \texttt{tsconfig.json} desde el primer commit evitó clases enteras de bugs en runtime. El costo de tipado adicional se pagó con creces en mantenibilidad.
+
+\item \textbf{Prisma como ORM}. La elección de Prisma sobre alternativas como TypeORM o Sequelize fue acertada. El schema declarativo, las migraciones automáticas, y el cliente tipado redujeron significativamente el boilerplate de acceso a datos.
+
+\item \textbf{Observabilidad desde el día uno}. Implementar logger estructurado, tracer OpenTelemetry, y persistencia de auditoría desde el primer sprint facilitó enormemente el debugging en producción y la comprensión del comportamiento real del sistema.
+
+\item \textbf{Tests unitarios junto al código}. Escribir tests unitarios simultáneamente con la implementación (no después) forzó un diseño más modular y testeable. Los 72 tests unitarios han capturado múltiples regresiones antes de que llegaran a producción.
+
+\item \textbf{Decisiones reversibles documentadas}. Mantener ADRs (Architecture Decision Records) para cada decisión significativa proporcionó contexto histórico invaluable al revisar el código meses después.
+
+\item \textbf{UI con sistema de diseño consistente}. Adoptar el sistema de diseño LinguaIA en lugar de improvisar estilos resultado en una UI más profesional y cohesiva, con menos deuda visual.
+\end{enumerate}
+
+\section{Lo que cambiaríamos}
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{VectorStore en producción desde el inicio}. Aunque la justificación de VectorStore en memoria para MVP fue válida (sin Docker en sandbox), en retrospectiva haber configurado Qdrant Cloud desde el inicio habría ahorrado la migración. Qdrant Cloud tiene un free tier generoso que habría sido suficiente.
+
+\item \textbf{OpenAPI/Swagger desde el inicio}. No haber generado documentación OpenAPI automáticamente fue un error. Herramientas como \texttt{next-swagger-doc} o \texttt{zod-to-openapi} habrían producido docs API sin esfuerzo adicional.
+
+\item \textbf{Rate limiting desde el inicio}. Implementar rate limiting sólo tras la auditoría de calidad fue un riesgo innecesario. \texttt{upstash/ratelimit} es trivial de integrar y debería haber estado desde el día uno.
+
+\item \textbf{ErrorBoundary y página 404 personalizada}. Estos elementos de UX madura se pospusieron injustamente. Su ausencia hace que la aplicación se sienta menos pulida.
+
+\item \textbf{E2E tests más estables}. La intermitencia de los tests E2E con Playwright fue frustrante. Estrategias de \texttt{waitFor} más robustas y \texttt{retry: 2} deberían haberse configurado desde el inicio.
+
+\item \textbf{Documentación legal antes del primer pago}. Posponer la redacción de políticas de privacidad y términos de servicio hasta antes del lanzamiento público generó presión innecesaria. Estos documentos deberían prepararse desde Fase 1.
+\end{enumerate}
+
+\section{Consejos para equipos que comienzan EdTech con IA}
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Empieza por el modelo pedagógico, no por la tecnología}. Antes de escribir una línea de código, define qué métricas medirán el aprendizaje del usuario y qué algoritmos las calcularán. Sin un modelo pedagógico claro, la IA es solo un chatbot.
+
+\item \textbf{El RAG es el foso, no el LLM}. Cualquiera puede usar GPT-5.4 o DeepSeek V4. Lo que ningún competidor puede replicar rápidamente es tu corpus de datos propietario y los embeddings del comportamiento de tus usuarios. Invierte en RAG desde el día uno.
+
+\item \textbf{Localiza profundamente, no solo traduce}. Localizar para México no es solo traducir la UI al español. Es facturar en pesos, integrar con Mercado Pago, alinear con el calendario mexicano, y entender la jerga laboral local. Esta localización profunda es un foso competitivo.
+
+\item \textbf{Valida con datos independientes antes de escalar}. 25 usuarios beta no son suficientes para validar una tesis de producto. Busca partnership con universidades o instituciones para estudios independientes antes de levantar capital Serie A.
+
+\item \textbf{Mide lo que importa, no lo que es fácil}. Es fácil medir DAU/MAU. Es difícil medir si el usuario realmente mejoró su inglés. Invierte en métricas pedagógicas (CEFR progression, retention curve, error reduction) desde el inicio.
+
+\item \textbf{El costo del LLM es estratégico}. La elección del LLM no es solo técnica, es estratégica. Un costo de inferencia bajo permite márgenes brutos del 90\%+; un costo alto te empuja a un B2B enterprise que no es necesariamente tu mercado.
+\end{enumerate}
+

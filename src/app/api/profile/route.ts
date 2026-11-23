@@ -48,6 +48,12 @@ export async function GET() {
       jobRole: profile.jobRole,
       learningGoals: profile.learningGoals ? JSON.parse(profile.learningGoals) : [],
       weeklyMinutesGoal: profile.weeklyMinutesGoal,
+      // Perfil público (R14)
+      bio: profile.bio,
+      avatarUrl: profile.avatarUrl,
+      // R15: pedagogía inmersiva
+      immersion: profile.immersion,
+      placedAt: profile.placedAt,
       onboardingCompleted: profile.onboardingCompleted,
     },
   })
@@ -70,6 +76,9 @@ export async function PATCH(req: NextRequest) {
     cefrInitial: z.enum(CEFR_LEVELS as unknown as [string, ...string[]]).optional(),
     professionalDomain: z.enum(DOMAINS as unknown as [string, ...string[]]).optional(),
     jobRole: z.string().max(100).optional(),
+    bio: z.string().max(280).nullable().optional(),
+    avatarUrl: z.string().url().max(500).nullable().optional(),
+    immersion: z.enum(['es', 'bi', 'en']).optional(),
     learningGoals: z.array(z.string()).max(10).optional(),
     weeklyMinutesGoal: z.number().int().min(15).max(600).optional(),
     onboardingCompleted: z.boolean().optional(),
@@ -86,6 +95,9 @@ export async function PATCH(req: NextRequest) {
       ...(parse.data.cefrInitial ? { cefrInitial: parse.data.cefrInitial, cefrCurrent: parse.data.cefrInitial } : {}),
       ...(parse.data.professionalDomain ? { professionalDomain: parse.data.professionalDomain } : {}),
       ...(parse.data.jobRole !== undefined ? { jobRole: parse.data.jobRole } : {}),
+      ...(parse.data.bio !== undefined ? { bio: parse.data.bio } : {}),
+      ...(parse.data.avatarUrl !== undefined ? { avatarUrl: parse.data.avatarUrl } : {}),
+      ...(parse.data.immersion ? { immersion: parse.data.immersion } : {}),
       ...(parse.data.learningGoals ? { learningGoals: JSON.stringify(parse.data.learningGoals) } : {}),
       ...(parse.data.weeklyMinutesGoal ? { weeklyMinutesGoal: parse.data.weeklyMinutesGoal } : {}),
       ...(parse.data.onboardingCompleted !== undefined ? { onboardingCompleted: parse.data.onboardingCompleted, onboardedAt: new Date() } : {}),

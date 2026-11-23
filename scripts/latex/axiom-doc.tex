@@ -1,0 +1,2605 @@
+%  AXIOM v7.0 — Documentación Técnica Integral
+%  Plataforma SaaS de Aprendizaje de Inglés con IA para Profesionistas Mexicanos
+%  Compilado con Tectonic — 100+ páginas
+\documentclass[10pt,a4paper,oneside]{report}
+
+% Encoding e idioma
+% Tectonic usa XeTeX por defecto, no requiere inputenc/fontenc
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}[
+  BoldFont={Liberation Serif Bold},
+  ItalicFont={Liberation Serif Italic},
+  BoldItalicFont={Liberation Serif Bold Italic}
+]
+\setsansfont{Liberation Sans}[
+  BoldFont={Liberation Sans Bold},
+  ItalicFont={Liberation Sans Italic}
+]
+\setmonofont{Liberation Mono}[
+  BoldFont={Liberation Mono Bold},
+  ItalicFont={Liberation Mono Italic}
+]
+\usepackage[spanish,es-tabla,es-noindentfirst]{babel}
+\shorthandoff{<>."}  % Disable active characters that conflict with code in \texttt{}
+
+% Geometría
+\usepackage[a4paper,margin=2.2cm,top=2.5cm,bottom=2.5cm,headheight=14pt]{geometry}
+
+% Tipografía
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.10}
+
+% Color y gráficos
+\usepackage{xcolor}
+\definecolor{axiomnavy}{HTML}{0B1F3A}
+\definecolor{axiomteal}{HTML}{0ECFB1}
+\definecolor{axiomamber}{HTML}{F5A623}
+\definecolor{axiomice}{HTML}{B5D4F4}
+\definecolor{axiompaper}{HTML}{F4F7FF}
+% New warm palette v7.0
+\definecolor{coral}{HTML}{E76F51}
+\definecolor{coraldark}{HTML}{C2553A}
+\definecolor{corallight}{HTML}{F4A38A}
+\definecolor{terracota}{HTML}{B85C3C}
+\definecolor{terracotadark}{HTML}{9F4630}
+\definecolor{mostaza}{HTML}{E9B83E}
+\definecolor{mostazadark}{HTML}{C99627}
+\definecolor{crema}{HTML}{FAF3E7}
+\definecolor{cremadark}{HTML}{F5E9D3}
+\definecolor{salvia}{HTML}{6B8E6A}
+\definecolor{salviadark}{HTML}{4E6B4D}
+\definecolor{carbon}{HTML}{2D2A26}
+\definecolor{cacao}{HTML}{2D2A26}
+\definecolor{cacaolight}{HTML}{3D3833}
+\definecolor{grafito}{HTML}{6B6661}
+\definecolor{papel}{HTML}{FFFBF5}
+\definecolor{codebg}{HTML}{F7F9FC}
+\definecolor{codeframe}{HTML}{D5DBE5}
+\definecolor{commentgreen}{HTML}{3F7F3F}
+\definecolor{keywordblue}{HTML}{2050A0}
+\definecolor{stringorange}{HTML}{A0522D}
+\definecolor{accentred}{HTML}{B22222}
+\definecolor{softgray}{HTML}{4A5568}
+
+% Listas, tablas, figuras
+\usepackage{enumitem}
+\setlist[itemize,1]{leftmargin=1.4em,itemsep=2pt}
+\setlist[enumerate,1]{leftmargin=1.6em,itemsep=2pt}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{tabularx}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\usepackage{graphicx}
+\usepackage{float}
+
+% Código
+\usepackage{listings}
+\lstdefinestyle{ts}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  rulecolor=\color{codeframe},
+  framesep=4pt,
+  framerule=0.4pt,
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen}\itshape,
+  stringstyle=\color{stringorange},
+  showstringspaces=false,
+  breaklines=true,
+  breakatwhitespace=false,
+  postbreak=\mbox{\textcolor{red}{$\hookrightarrow$}\space},
+  numbers=left,
+  numberstyle=\tiny\color{softgray},
+  numbersep=8pt,
+  xleftmargin=18pt,
+  tabsize=2,
+  captionpos=b,
+  morekeywords={async,await,interface,type,enum,implements,extends,readonly,as,const,unknown,never,public,private,protected,static,abstract,from,import,export,default,class,function,return,if,else,for,while,switch,case,break,continue,new,try,catch,finally,throw,typeof,instanceof,in,of,this,super,yield,delete,void,null,undefined,true,false,string,number,boolean,any,void,promise,array,record,partial,require,pick,omit},
+  keywordstyle={[2]\color{accentred}\bfseries},
+  morekeywords=[2]{string,number,boolean,any,void,promise,array,record,partial,require,pick,omit,User,Plan,Subscription,Payment,Message,LearningSession,UserDocument,DocumentChunk,AgentRun,AgentToolCall,AgentMemory,SystemEvent,AuditLog,VectorPoint,VectorMatch,SearchOptions,TypingResult,TypingKeystroke,Correction,VocabularyItem,ReviewSchedule,FeatureFlag,Experiment},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+  morestring=[b]`,
+}
+\lstdefinestyle{py}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  rulecolor=\color{codeframe},
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen}\itshape,
+  stringstyle=\color{stringorange},
+  showstringspaces=false,
+  breaklines=true,
+  numbers=left,
+  numberstyle=\tiny\color{softgray},
+  numbersep=8pt,
+  xleftmargin=18pt,
+  tabsize=4,
+  captionpos=b,
+  morekeywords={def,class,import,from,as,return,if,elif,else,for,while,try,except,finally,with,raise,yield,lambda,async,await,pass,break,continue,global,nonlocal,in,is,not,and,or,None,True,False,self,print,len,range,open,enumerate,zip,map,filter,sorted,sum,min,max,abs,round,list,dict,set,tuple,str,int,float,bool,type,isinstance,hasattr,getattr,setattr,delattr,property,staticmethod,classmethod,super,dataclass},
+  morecomment=[l]{\#},
+  morestring=[b]',
+  morestring=[b]",
+}
+\lstdefinestyle{sql}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  rulecolor=\color{codeframe},
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen}\itshape,
+  stringstyle=\color{stringorange},
+  showstringspaces=false,
+  breaklines=true,
+  numbers=left,
+  numberstyle=\tiny\color{softgray},
+  numbersep=8pt,
+  xleftmargin=18pt,
+  tabsize=2,
+  captionpos=b,
+  morekeywords={model,datasource,generator,Int,DateTime,String,Boolean,Json,Relation,User,AuthSession,PasswordResetToken,UserRole,Role,Permission,RolePermission,UserProfile,UserProgress,Plan,Subscription,Payment,LearningSession,Message,UserDocument,DocumentChunk,AgentMemory,AgentRun,AgentToolCall,VocabularyItem,ReviewSchedule,ErrorEvent,MetricPoint,SystemEvent,AuditLog,FeatureFlag,FeatureFlagAssignment,Experiment,ExperimentAssignment,TypingResult,TranslationResult,id,email,passwordHash,name,emailVerifiedAt,createdAt,updatedAt,lastLoginAt,profile,subscriptions,sessions,learningSessions,documents,agentMemories,agentRuns,auditLogs,events,consumedEvents,payments,featureFlags,experimentAssignments,progress,vocabularyItems,reviewSchedules,errorEvents,metricPoints,resetTokens,userRoles,typingResults,translationResults,index,unique,default,now,cuid,uuid,autoincrement,relation,fields,references,onDelete,Cascade,Restrict,SetNull,values,enum,type,interface,implements,extends},
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]',
+  morestring=[b]",
+}
+\lstdefinestyle{bash}{
+  backgroundcolor=\color{codebg},
+  basicstyle=\ttfamily\footnotesize,
+  frame=single,
+  rulecolor=\color{codeframe},
+  keywordstyle=\color{keywordblue}\bfseries,
+  commentstyle=\color{commentgreen}\itshape,
+  showstringspaces=false,
+  breaklines=true,
+  numbers=none,
+  xleftmargin=8pt,
+  tabsize=2,
+  captionpos=b,
+  morekeywords={bun,bunx,npm,npx,git,cd,cp,tsc,prisma,vitest,playwright,k6,node,export,cat,echo,mkdir,ls,zip,yarn},
+  keywordstyle={[2]\color{accentred}\bfseries},
+  morekeywords=[2]{if,then,else,fi,for,do,done,while,case,esac,function,return},
+  morecomment=[l]{\#},
+  morestring=[b]",
+  morestring=[b]',
+}
+\lstset{style=ts}
+
+% Cajas de aviso
+\usepackage[most]{tcolorbox}
+\tcbset{
+  notebox/.style={
+    enhanced, colback=axiompaper, colframe=axiomnavy,
+    boxrule=0.6pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries\color{white},
+    coltitle=white, colbacktitle=axiomnavy,
+    attach boxed title to top left={xshift=6pt,yshift=-3pt},
+    boxed title style={size=small, colback=axiomnavy, sharp corners},
+    title=Nota
+  },
+  warnbox/.style={
+    enhanced, colback=axiomamber!8, colframe=axiomamber!80!black,
+    boxrule=0.6pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries\color{white},
+    coltitle=white, colbacktitle=axiomamber!80!black,
+    attach boxed title to top left={xshift=6pt,yshift=-3pt},
+    boxed title style={size=small, colback=axiomamber!80!black, sharp corners},
+    title=Atención
+  },
+  infobox/.style={
+    enhanced, colback=axiomteal!8, colframe=axiomteal!70!black,
+    boxrule=0.6pt, arc=2pt, left=8pt, right=8pt, top=6pt, bottom=6pt,
+    fonttitle=\bfseries\color{white},
+    coltitle=white, colbacktitle=axiomteal!70!black,
+    attach boxed title to top left={xshift=6pt,yshift=-3pt},
+    boxed title style={size=small, colback=axiomteal!70!black, sharp corners},
+    title=Información
+  },
+}
+
+% Encabezados y pies
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\color{axiomnavy}\textbf{Axiom v7.0} — Documentación Técnica}
+\fancyhead[R]{\small\color{softgray}\rightmark}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{axiomnavy}\leaders\hrule height \headrulewidth\hfill}}
+
+% Hipervínculos
+\usepackage[hidelinks,bookmarksnumbered=true,bookmarksopen=true,bookmarksopenlevel=1]{hyperref}
+\hypersetup{
+  pdftitle={Axiom v7.0 — Documentación Técnica Integral},
+  pdfauthor={Equipo Axiom},
+  pdfsubject={Plataforma SaaS de Aprendizaje de Inglés con IA},
+  pdfkeywords={EdTech, IA, RAG, IRT, FSRS, DeepSeek, Next.js, México, Inglés},
+  colorlinks=false
+}
+
+% Estilos de capítulo
+\usepackage{titlesec}
+\titleformat{\chapter}[display]
+  {\normalfont\huge\bfseries\color{axiomnavy}}
+  {\filright\Large\color{axiomteal}\textbf{Capítulo \thechapter}}
+  {10pt}
+  {\Huge}
+  [\vspace{6pt}\color{axiomnavy}\titlerule\vspace{4pt}\color{axiomnavy}\titlerule]
+\titlespacing*{\chapter}{0pt}{-20pt}{20pt}
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries\color{axiomnavy}}
+  {\thesection}{1em}{}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries\color{axiomnavy!85!black}}
+  {\thesubsection}{1em}{}
+
+\titleformat{\subsubsection}
+  {\normalfont\normalsize\bfseries\color{softgray}}
+  {\thesubsubsection}{1em}{}
+
+% TOC
+\usepackage[titles]{tocloft}
+\renewcommand{\cftchapfont}{\bfseries\color{axiomnavy}}
+\renewcommand{\cftsecfont}{\color{softgray}}
+\setcounter{tocdepth}{1}
+\setcounter{secnumdepth}{3}
+
+% Matemáticas
+\usepackage{amsmath,amssymb}
+\usepackage{mathtools}
+
+\begin{document}
+
+% PORTADA — Rediseño v7.0 (paleta cálida)
+\begin{titlepage}
+\thispagestyle{empty}
+
+% Fondo: gradiente vertical cacao → terracota con overlays
+\definecolor{coverbg}{HTML}{2D2A26}
+\definecolor{coverbg2}{HTML}{3D3833}
+\begin{tikzpicture}[overlay,remember picture]
+% Fondo principal cacao
+\fill[coverbg] (current page.south west) rectangle (current page.north east);
+% Banda diagonal terracota
+\fill[terracota, opacity=0.85, rotate around={-15:(current page.north east)}]
+  ([xshift=-3cm,yshift=-2cm]current page.north east) rectangle
+  ([xshift=4cm,yshift=2cm]current page.north east);
+% Círculo coral decorativo superior izquierdo
+\fill[coral, opacity=0.18] ([xshift=3cm,yshift=-3cm]current page.north west) circle (5.5cm);
+% Círculo mostaza decorativo inferior derecho
+\fill[mostaza, opacity=0.12] ([xshift=-3cm,yshift=3cm]current page.south east) circle (4.5cm);
+% Pequeños puntos decorativos (estrellas)
+\foreach \x/\y in {-2/-4, 1/-5, 3/-3, -1/-2, 2/-1, 4/-5, -3/-1} {
+  \fill[white, opacity=0.3] ([xshift=\x cm, yshift=\y cm]current page.north east) circle (0.05cm);
+}
+\end{tikzpicture}
+
+% Marca de agua "A" grande decorativa
+\begin{tikzpicture}[overlay,remember picture]
+\node[anchor=south east, opacity=0.05] at ([xshift=-2cm,yshift=2cm]current page.south east) {
+  \fontsize{280}{280}\selectfont\bfseries\color{white} A
+};
+\end{tikzpicture}
+
+\vspace*{1.5cm}
+
+% Encabezado superior — chip de versión
+\begin{center}
+\begin{tikzpicture}
+\node[draw=coral, line width=1pt, rounded corners=15pt, inner sep=8pt, fill=coral!10] {
+  \color{coral}\bfseries\small\textsf{v7.0 — DOCUMENTACIÓN TÉCNICA INTEGRAL}
+};
+\end{tikzpicture}
+\end{center}
+
+\vspace{1.5cm}
+
+% Título principal — AXIOM con estilo tipográfico grande
+\begin{center}
+{\color{white}\fontsize{64}{72}\selectfont\textbf{AXIOM}}\\[8pt]
+\begin{tikzpicture}
+\draw[coral, line width=2pt] (0,0) -- (4,0);
+\fill[mostaza] (4,0) circle (3pt);
+\end{tikzpicture}\\[10pt]
+{\color{coral}\fontsize{14}{18}\selectfont\textsf{PLATAFORMA SaaS DE APRENDIZAJE DE INGLÉS CON IA}}\\[4pt]
+{\color{white!70}\small\textsf{Para profesionistas mexicanos — Agosto 2026}}
+\end{center}
+
+\vspace{2cm}
+
+% Cita central destacada
+\begin{center}
+\begin{tikzpicture}
+\node[draw=white, line width=0.5pt, rounded corners=10pt, inner sep=20pt, fill=white!5, text width=10cm, align=center] {
+  {\color{coral}\Large\textbf{``Aprende inglés dentro de tu trabajo''}}\\[6pt]
+  {\color{white!75}\small\itshape Tesis central del producto — Una plataforma que convierte cada email, reunión y reporte profesional en una oportunidad de practicar inglés con IA.}
+};
+\end{tikzpicture}
+\end{center}
+
+\vfill
+
+% Tabla de metadatos con estilo cálido
+\begin{center}
+\renewcommand{\arraystretch}{1.4}
+\begin{tabular}{@{}rl@{}}
+\color{coral}\textbf{\textsf{Producto}} & \color{white}\textsf{SaaS EdTech con RAG pedagógico} \\
+\color{coral}\textbf{\textsf{Mercado}} & \color{white}\textsf{México — profesionistas 25--45 años} \\
+\color{coral}\textbf{\textsf{Stack}} & \color{white}\textsf{Next.js 16 · React 19 · Prisma 7 · DeepSeek V4} \\
+\color{coral}\textbf{\textsf{Estado}} & \color{white}\textsf{v7.0 — Beta interna lista para conexiones} \\
+\color{coral}\textbf{\textsf{Compilado}} & \color{white}\textsf{Tectonic + XeTeX · \today} \\
+\end{tabular}
+\end{center}
+
+\vspace{1.2cm}
+
+% Footer con líneas decorativas
+\begin{center}
+\begin{tikzpicture}
+\draw[coral, line width=0.8pt] (0,0) -- (3,0);
+\fill[mostaza] (3,0) circle (2pt);
+\fill[coral] (0,0) circle (2pt);
+\end{tikzpicture}\\[6pt]
+{\color{white!60}\small\textsf{Este documento es la fuente única de verdad técnica del proyecto Axiom.}}\\[2pt]
+{\color{white!40}\scriptsize\textsf{Sustituye y consolida los documentos TDD, Quality-Audit y Security-Audit previos.}}
+\end{center}
+\end{titlepage}
+
+% ÍNDICE
+\cleardoublepage
+\tableofcontents
+
+% RESUMEN EJECUTIVO
+\chapter*{Resumen Ejecutivo}
+\addcontentsline{toc}{chapter}{Resumen Ejecutivo}
+\markboth{Resumen Ejecutivo}{Resumen Ejecutivo}
+
+Axiom es una plataforma \textbf{SaaS de aprendizaje de inglés con inteligencia artificial} dirigida a profesionistas mexicanos de entre 25 y 45 años en los sectores de tecnología, finanzas y manufactura. La tesis central del producto se resume en una sola frase: \textit{«aprender inglés dentro de mi trabajo»}. Esta promesa de valor se materializa mediante un \textbf{pipeline RAG (Retrieval-Augmented Generation)} que se alimenta de los propios documentos profesionales del usuario —correos, reportes, presentaciones, transcripciones de reuniones, documentación técnica— para generar ejercicios de inglés contextualizados en el vocabulario y las situaciones reales del día a día laboral del estudiante.
+
+La presente documentación técnica integral describe la versión \textbf{6.0} del producto, que consolida: (i) la arquitectura completa del MVP basada en Next.js 16 con API Routes monolíticas; (ii) el modelo pedagógico matemático basado en \textbf{IRT 3PL bayesiano, FSRS y retención Weibull}; (iii) el sistema de cinco \textbf{agentes IA} (Tutor, Learning, Analytics, Product, Engineering) con orquestador y capa de herramientas; (iv) los algoritmos puros de evaluación de mecanografía y traducción; (v) la integración con \textbf{Mercado Pago} para facturación en pesos mexicanos; (vi) el sistema completo de observabilidad con auditoría y trazabilidad; y (vii) la pirámide de pruebas con 72 tests unitarios, 4 especificaciones E2E con Playwright y pruebas de carga con k6.
+
+El proyecto se encuentra en \textbf{Fase 1 — MVP para beta interna} con credenciales demo operativas (\texttt{admin@axiom.mx / axiom12345}), las 22 rutas API REST implementadas y los 7 módulos de interfaz reestilizados con la paleta navy/teal/ámbar inspirada en LinguaIA Project. El estado de calidad, según la auditoría interna, es de \textbf{MVP production-ready para ≤20 usuarios simultáneos}, con un listado de 12 elementos de deuda técnica priorizados para alcanzar la calidad de lanzamiento público.
+
+\begin{tcolorbox}[infobox,title=Lectura recomendada]
+\textbf{Inversores y ejecutivos}: capítulos 2 (Mercado), 18 (Financiero), 19 (Riesgos), 20 (Roadmap).\\
+\textbf{Equipo técnico}: capítulos 3 (Pedagogía), 4 (Arquitectura), 6 (DB), 7 (Algoritmos), 8 (RAG), 9 (Agentes).\\
+\textbf{Equipo de producto}: capítulos 1, 15 (UI), 21 (Auditoría).
+\end{tcolorbox}
+
+\chapter{Visión General del Proyecto}
+
+\section{Identidad del producto}
+Axiom es un producto de software como servicio (SaaS) diseñado específicamente para resolver un problema crónico del mercado mexicano: el \textbf{bajo dominio del idioma inglés} entre profesionistas técnicos y de negocios, a pesar de que el \textbf{premium salarial} por bilingüismo en México oscila entre \textbf{40\% y 60\%} según datos de OCC Mundial y Glassdoor 2024. El país ocupa el puesto \textbf{103 de 123} en el EF English Proficiency Index 2025, con un descenso de 19 puntos respecto a 2024, lo cual configura un mercado con demanda latente insatisfecha.
+
+El nombre del producto —\textit{Axiom}— refiere a una proposición evidente por sí misma, una verdad que no requiere demostración. Esta elección nominal refleja la filosofía del proyecto: el aprendizaje efectivo de un idioma no se logra con aplicaciones genéricas de gamificación superficial, sino mediante la inmersión contextual en el material lingüístico que el estudiante ya necesita procesar para su trabajo diario. Un desarrollador de software no necesita aprender vocabulario sobre frutas exóticas; necesita dominar el lenguaje de las revisiones de código, los stand-ups, los RFC, las comunicaciones con stakeholders. Axiom construye su propuesta de valor sobre esa premisa fundamental.
+
+\section{Tesis central del producto}
+La propuesta de valor diferenciadora de Axiom se articula en torno a tres pilares conceptuales interconectados:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{RAG sobre documentos propios del usuario.} Cada estudiante carga sus propios documentos profesionales (PDFs de reportes, correos exportados, transcripciones de reuniones, documentación de proyectos). El pipeline RAG los indexa, los trocea semánticamente, genera embeddings BGE-M3 de 1024 dimensiones y los almacena en una base de datos vectorial Qdrant. Cuando el estudiante inicia una sesión de conversación o de escritura, el sistema recupera los fragmentos más relevantes y los inyecta en el prompt del LLM, generando respuestas y ejercicios contextualizados en su realidad profesional.
+\item \textbf{IA-first con modelo DeepSeek V4.} A diferencia de competidores como Open English o Poliglota que combinan contenido pregrabado con tutoría humana, Axiom es \textit{IA-first}: toda la interacción pedagógica es generada por el LLM en tiempo real, adaptada al nivel CEFR del estudiante y a sus patrones de error detectados. Esto permite un costo marginal cercano a cero y una escalabilidad sin restricción de horarios.
+\item \textbf{Localización mexicana.} Precios en pesos mexicanos (no en dólares convertidos), integración nativa con Mercado Pago (que domina el 80\% del mercado de pagos digitales en México), alineación con el calendario laboral mexicano, y contenido adaptado a las particularidades del español mexicano y al contexto regulatorio y cultural local.
+\end{enumerate}
+
+\section{Segmento objetivo}
+El usuario arquetípico de Axiom es un profesionista mexicano de entre 25 y 45 años, con formación universitaria en ingeniería, contaduría, administración o áreas afines, empleado en una empresa transnacional o en una empresa nacional que aspira a exportar o a servir clientes extranjeros. Trabaja en uno de tres sectores prioritarios: \textbf{tecnología de software} (desarrolladores, analistas de datos, product managers), \textbf{finanzas y banca} (analistas financieros, contadores, auditores) y \textbf{manufactura y cadena de suministro} (ingenieros de planta, planificadores, gerentes de operaciones). El usuario promedio tiene un nivel de inglés CEFR entre A2 y B1 al ingresar, una carga laboral intensa que le impide dedicar más de 30 minutos diarios al estudio formal del idioma, y una motivación instrumental clara: un ascenso, una asignación internacional, o la necesidad de comunicarse con clientes y colegas en inglés.
+
+\section{Diferenciadores competitivos}
+El análisis competitivo (ver capítulo 2) cubre 10 plataformas Tier 1 en el mercado global de aprendizaje de inglés con IA. Frente a estos competidores, Axiom explota seis brechas competitivas identificadas:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{RAG con documentos del usuario.} Ningún competidor relevante (Voxy, Open English, Elsa Speak, Poliglota, Cambly, TalkPal, Cake, SmallTalk2Me, Speexx, GoFluent) implementa un pipeline RAG sobre los documentos personales del usuario. Esta capacidad es el foso principal del producto.
+\item \textbf{Intersección IA-first + LATAM + MXN.} Elsa Speak y TalkPal son IA-first pero no están localizados para México ni facturan en pesos. Open English y Poliglota están localizados pero dependen de tutores humanos (costo marginal alto).
+\item \textbf{Segmento individual profesional.} Speexx y GoFluent son enterprise-only y no venden a usuarios individuales. Axiom captura al profesionista individual que su empleador no le paga cursos.
+\item \textbf{Nichos profesionales mexicanos.} Contenido específico para desarrolladores de software mexicanos (revisiones de código, stand-ups), analistas financieros (reportes financieros, llamadas de ganancias) e ingenieros de manufactura (memorandos técnicos, especificaciones).
+\item \textbf{Foso de localización.} La integración profunda con Mercado Pago, el calendario mexicano, y la jerga laboral local toma 12–18 meses en replicarse por un competidor extranjero.
+\item \textbf{Foso de switching costs.} Una vez que el usuario carga sus documentos y entrena al sistema con sus patrones de error, migrar a otra plataforma implica perder todo ese capital acumulado.
+\end{itemize}
+
+\section{Modelo de negocio}
+Axiom opera bajo un modelo SaaS B2C con opción B2B2C. Los planes de suscripción mensual son: \textbf{Básico} \$199 MXN (RAG con límite de 5 documentos, conversación IA limitada a 30 mensajes/día), \textbf{Pro} \$399 MXN (RAG ilimitado, conversación sin límite, modo mecanografía, modo traducción), \textbf{Equipo} \$999 MXN para hasta 15 usuarios (panel de administración de equipo, métricas agregadas, facturación centralizada), y \textbf{Enterprise} \$2,999+ MXN (SLA, SSO, integraciones personalizadas, onboarding dedicado). El modelo financiero (capítulo 18) proyecta un ARPU blend de \$279 MXN con 5\% de conversión de trial a pago y un margen bruto del 91\% (el COGS principal es el costo de inferencia del LLM, aproximadamente 9\% del MRR).
+
+\section{Estado actual del proyecto}
+A la fecha de esta documentación (agosto 2026), el proyecto se encuentra en \textbf{Fase 1 — MVP para beta interna}. Los hitos alcanzados incluyen: arquitectura completa implementada en Next.js 16 + React 19.2 + Prisma 7 + TypeScript; 22 rutas API REST operativas cubriendo autenticación, perfiles, módulos de aprendizaje, facturación, agentes, administración y métricas; 5 agentes IA registrados y despachando vía API con trazabilidad completa; pipeline RAG funcional con VectorStore en memoria (interfaz compatible con Qdrant para migración sin fricción); sistema de facturación con Mercado Pago en modo sandbox; 7 módulos de UI reestilizados con la paleta navy/teal/ámbar; 72 tests unitarios pasando al 100\%; pipeline CI/CD en GitHub Actions; y verificación end-to-end con LLM real (DeepSeek V4-Flash vía z-ai-web-dev-sdk). Las credenciales demo son \texttt{admin@axiom.mx / axiom12345}.
+
+
+\chapter{Análisis de Mercado y Contexto Competitivo}
+
+\section{El problema del inglés en México}
+México enfrenta una crisis estructural en el dominio del idioma inglés entre su población adulta económicamente activa. Según el \textbf{EF English Proficiency Index 2025}, el país ocupa el puesto \textbf{103 de 123} naciones evaluadas, con un score de 440 puntos (categoría «muy bajo»). Esta posición representa un descenso de \textbf{19 puntos} respecto a la edición 2024, cuando México ocupaba el lugar 87 de 116 con un score de 459. La tendencia es alarmante: en lugar de mejorar, el dominio del inglés entre los adultos mexicanos está retrocediendo.
+
+Este déficit lingüístico tiene consecuencias económicas medibles. La consultora OCC Mundial, en su estudio salarial 2024, documentó que el \textbf{premium salarial por bilingüismo} oscila entre \textbf{40\% y 60\%} según el sector y la antigüedad. En tecnología de software, un desarrollador senior bilingüe gana en promedio 58\% más que su contraparte monolingüe. En finanzas corporativas, la brecha es de 47\%. En manufactura de exportación, de 42\%. Aun así, según la ENOE del INEGI (Q1 2025), de los 371,000 desarrolladores y analistas de software en México, menos del 30\% alcanza un nivel B2 o superior en el MCER.
+
+\section{Tamaño del mercado}
+El análisis de tamaño de mercado se construye bajo el marco TAM-SAM-SOM:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lrl}
+\toprule
+\textbf{Capa} & \textbf{Tamaño} & \textbf{Definición} \\
+\midrule
+TAM & 4.8M & Profesionistas mexicanos 25-45 con acceso a internet y necesidad de inglés \\
+SAM & 1.2M & Subset del TAM que ya paga por herramientas digitales de productividad \\
+SOM (M36) & 8,500 & Usuarios pagos objetivo a 36 meses en escenario Base \\
+\bottomrule
+\end{tabular}
+\caption{Tamaño de mercado TAM-SAM-SOM}
+\end{table}
+
+El mercado global de aprendizaje digital de inglés, según HolonIQ, crece de \textbf{\$15.98 mil millones USD en 2026} a \textbf{\$31.62 mil millones USD en 2031}, con un CAGR del 14.62\%. El mercado EdTech LATAM 2024 se valúa en \$10.15 mil millones USD con CAGR del 14\%. México captura aproximadamente el 22\% del mercado EdTech LATAM, lo que implica un mercado nacional de \$2.23 mil millones USD en 2024 creciendo a \$4.3 mil millones USD en 2029.
+
+\section{Vientos a favor: nearshoring}
+El fenómeno del \textbf{nearshoring} —relocalización de cadenas de suministro cerca de Estados Unidos— está generando una demanda sin precedentes de inglés profesional en México. La Inversión Extranjera Directa (IED) en México alcanzó \textbf{\$36.058 mil millones USD en 2023}, \textbf{\$36.872 mil millones USD en 2024} y se proyecta en \textbf{\$40.871 mil millones USD en 2025}. En los primeros nueve meses de 2023, la IED creció 47\% a nivel nacional, con picos extraordinarios en estados como Aguascalientes (310\% de crecimiento interanual).
+
+Cada nueva planta industrial, cada centro de desarrollo de software que una empresa transnacional abre en México, genera empleos que requieren inglés funcional. La Asociación Mexicana de Parques Industriales Privados (AMPIP) reporta que el 78\% de las nuevas vacantes en parques industriales de exportación requieren al menos nivel B1 de inglés. Este es el viento de cola que Axiom pretende capitalizar.
+
+\section{Análisis competitivo}
+El panorama competitivo de plataformas de aprendizaje de inglés con IA se segmenta en tres tiers. El Tier 1 (10 plataformas analizadas en profundidad) incluye:
+
+\begin{longtable}{p{2.4cm}p{1.5cm}p{2.2cm}p{2.5cm}p{3.5cm}}
+\toprule
+\textbf{Plataforma} & \textbf{Año} & \textbf{Sede} & \textbf{Precio USD/mes} & \textbf{Diferenciador} \\
+\midrule
+Voxy & 2010 & Nueva York & \$20--30 & Contenido de medios reales (AP, Reuters) \\
+GoFluent & 2000 & París & Enterprise & Catálogo 80+ idiomas empresariales \\
+Open English & 2008 & Miami & \$30--39 & Líder LATAM, tutores humanos 24/7 \\
+Elsa Speak & 2015 & San Francisco & \$11.99 & IA-first, reconocimiento de pronunciación \\
+Speexx & 2000 & Múnich & Enterprise & Corporate training, certificaciones \\
+Poliglota & 2015 & Santiago & \$50--80 & YC, sesiones grupales con tutores \\
+SmallTalk2Me & 2020 & --- & \$10--15 & Simulacros de entrevistas y exámenes \\
+TalkPal & 2023 & Estonia & \$7.49--14.99 & IA-first, roleplay con personajes \\
+Cambly & 2012 & San Francisco & \$24--85 & Tutores nativos por video \\
+Cake & 2017 & Seúl & \$5--10 & Contenido de YouTube fragmentado \\
+\bottomrule
+\caption{Competidores Tier 1 — plataformas de aprendizaje de inglés}
+\end{longtable}
+
+\section{Posicionamiento de Axiom}
+Axiom se posiciona en el cuadrante \textbf{IA-first + LATAM + RAG personalizado}, un espacio vacío en la matriz competitiva actual. Mientras Elsa Speak y TalkPal compiten en el eje IA-first pero son globales y facturan en USD, y Open English y Poliglota compiten en el eje LATAM pero dependen de tutores humanos, Axiom es la única plataforma que combina las tres dimensiones: IA como motor pedagógico principal, localización profunda para México, y personalización RAG sobre los documentos del usuario.
+
+La estrategia de precios refuerza este posicionamiento. A \$399 MXN/mes (≈\$23 USD) para el plan Pro, Axiom se ubica por debajo de Open English (\$30--39 USD) y Poliglota (\$50--80 USD), pero por encima de Elsa Speak (\$11.99 USD) y Cake (\$5--10 USD). Esta posición intermedia comunica valor: no compite por ser el más barato, sino por ofrecer la mejor relación costo-beneficio para el profesionista mexicano que necesita inglés para su trabajo específico.
+
+\chapter{Modelo Pedagógico}
+
+\section{Fundamentación teórica}
+El modelo pedagógico de Axiom se fundamenta en tres cuerpos teóricos consolidados en la literatura de psicometría y aprendizaje: \textbf{Teoría de Respuesta al Ítem (IRT)} para la estimación adaptativa del nivel de habilidad; \textbf{Repetición Espaciada} para la programación óptima de repasos de vocabulario y estructuras gramaticales; y \textbf{Análisis de Supervivencia (Weibull)} para modelar la retención del usuario a lo largo del tiempo. Los tres componentes se integran en un sistema coherente: IRT estima dónde está el estudiante; FSRS decide qué debe repasar y cuándo; Weibull predice cuándo abandonará y permite intervenir proactivamente.
+
+\section{IRT 3PL — Three-Parameter Logistic}
+La Teoría de Respuesta al Ítem, en su formulación de tres parámetros logísticos (3PL), modela la probabilidad de que un estudiante con habilidad $\theta$ responda correctamente al ítem $j$ mediante:
+
+\begin{equation}
+P_j(\theta) = c_j + \frac{1 - c_j}{1 + \exp\left(-a_j (\theta - b_j)\right)}
+\end{equation}
+
+Donde:
+\begin{itemize}[leftmargin=1.4em]
+\item $\theta$ es la habilidad del estudiante, en escala logit (típicamente $[-3, +3]$).
+\item $a_j$ es la \textit{discriminación} del ítem (qué tan bien distingue entre estudiantes de alta y baja habilidad).
+\item $b_j$ es la \textit{dificultad} del ítem (en la misma escala logit que $\theta$).
+\item $c_j$ es la \textit{probabilidad de acierto por azar} (para ítems de opción múltiple con $k$ opciones, $c_j \approx 1/k$).
+\end{itemize}
+
+La estimación de $\theta$ se realiza de manera \textbf{bayesiana}, con prior $\theta \sim \mathcal{N}(0, 1)$:
+
+\begin{equation}
+p(\theta \mid \mathbf{x}) \propto p(\mathbf{x} \mid \theta) \cdot p(\theta) = \prod_{j=1}^{n} P_j(\theta)^{x_j} \cdot (1 - P_j(\theta))^{1 - x_j} \cdot \mathcal{N}(\theta; 0, 1)
+\end{equation}
+
+La implementación en Axiom utiliza \textbf{15--20 ítems adaptativos} para alcanzar un error estándar de estimación $SE < 0.3$ logit, suficiente para distinguir entre niveles CEFR adyacentes. El mapeo CEFR se realiza mediante:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{CEFR} & \textbf{$\theta$ (logit)} & \textbf{Descripción} \\
+\midrule
+A1 & $-3.0$ & Principiante \\
+A2 & $-2.0$ & Elemental \\
+B1 & $-1.0$ & Intermedio \\
+B2 & $0.0$ & Intermedio alto \\
+C1 & $+1.0$ & Avanzado \\
+C2 & $+2.0$ & Maestría \\
+\bottomrule
+\end{tabular}
+\caption{Mapeo MCER ↔ escala logit IRT}
+\end{table}
+
+\section{FSRS — Free Spaced Repetition Scheduler}
+El algoritmo \textbf{FSRS} (Ye et al., 2024) reemplaza al clásico Anki SM-2 con mejoras significativas en la predicción de retención. FSRS modela la memoria mediante tres constructos:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Estabilidad} $S$: tiempo en el que la probabilidad de recuerdo cae al 90\%.
+\item \textbf{Dificultad} $D$: resistencia intrínseca del ítem a ser recordado (escala 1--10).
+\item \textbf{Recuperabilidad} $R(t) = \exp\left(-\frac{t}{S}\right)$: probabilidad de recuerdo en el tiempo $t$ desde el último repaso.
+\end{itemize}
+
+El algoritmo actualiza $S$ y $D$ tras cada respuesta del usuario. Para un ítem calificado como «correcto» con grado $g \in \{1, 2, 3, 4\}$ (1=fácil, 4=difultad-justo-correcto):
+
+\begin{align}
+S' &= S \cdot \left(1 + e^{w_1} \cdot (11 - D) \cdot S^{w_2} \cdot \left(e^{-w_3 \cdot g} - 1\right)\right) \\
+D' &= \min(10, \max(1, D - w_4 \cdot (g - 3)))
+\end{align}
+
+Donde $w_1, w_2, w_3, w_4$ son parámetros optimizados por maximum likelihood sobre el histórico del usuario. FSRS predice el próximo intervalo óptimo de repaso como $t^* = S \cdot \ln(0.9 / R_{target})$ con $R_{target} = 0.9$ por defecto.
+
+\section{Retención Weibull}
+Para modelar el abandono (churn) de los usuarios a nivel agregado, Axiom emplea un \textbf{modelo de supervivencia Weibull}. La función de supervivencia es:
+
+\begin{equation}
+S(t) = \exp\left(-\left(\frac{t}{\eta}\right)^\beta\right)
+\end{equation}
+
+Con parámetros calibrados $\beta = 0.7$ y $\eta = 18$ meses, el tiempo esperado de retención es:
+
+\begin{equation}
+\mathbb{E}[T] = \eta \cdot \Gamma\left(1 + \frac{1}{\beta}\right) = 18 \cdot \Gamma(2.43) \approx 18 \cdot 1.27 \approx 22.8 \text{ meses}
+\end{equation}
+
+Este modelo captura el fenómeno de \textbf{riesgo creciente} ($\beta < 1$): los usuarios son más propensos a abandonar en los primeros meses que posteriormente. El LTV calculado con Weibull (22.8 meses) es significativamente mayor al calculado con churn constante (12.5 meses), lo cual tiene implicaciones materiales en la valoración financiera del proyecto.
+
+\section{Validación bayesiana con datos beta}
+Los datos de la beta inicial (25 usuarios, junio 2026) proporcionaron dos observaciones clave para inferencia bayesiana:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{NPS = 62} (22 promotores de 25 respuestas) → posterior $\text{Beta}(23, 4)$; IC 95\% [43, 79].
+\item \textbf{D7 retention = 88\%} → posterior $\text{Beta}(23, 4)$; $P(p_{D7} > 0.70 \mid \text{datos}) \approx 97\%$.
+\end{itemize}
+
+Estos resultados, aunque limitados por el tamaño muestral, son alentadores: la probabilidad de que la retención D7 real supere el 70\% es del 97\%, lo cual justifica proseguir con la Fase 2 del proyecto.
+
+\section{Cálculo de tamaño muestral para A/B testing}
+El cálculo clásico de tamaño muestral para A/B testing con $\alpha = 0.05$, potencia $1 - \beta = 0.80$, MDE del 20\%, $p_1 = 0.05$ y $p_2 = 0.06$ arroja $n_{min} \approx 8{,}159$ por variante, es decir, 16,318 usuarios totales. Con un volumen de 50--100 trials mensuales en Fase 1-2, esto requeriría 163--326 meses —claramente inviable. La solución adoptada combina \textbf{testing secuencial} (SPRT, Wald) con un MDE del 40\%, reduciendo el requerimiento a $\approx 800$ por variante, alcanzable en 4--5 meses.
+
+\chapter{Arquitectura del Sistema}
+
+\section{Visión arquitectónica general}
+La arquitectura de Axiom sigue un patrón \textbf{monolítico modular} en su fase MVP, con un camino claro de evolución hacia microservicios en la Fase 3. La elección de monolito modular sobre microservicios desde el inicio es deliberada: para un equipo pequeño (1--3 personas en Fase 1) y un volumen de usuarios limitado (≤1,000 pagos en Fase 2), los beneficios de simplicidad operacional, depuración local y costo de infraestructura mínimo superan con creces los beneficios de escalabilidad independiente que ofrecerían los microservicios.
+
+El monolito se construye sobre \textbf{Next.js 16 con API Routes}, lo que permite compartir tipos TypeScript entre el frontend y el backend, ejecutar el middleware de autenticación en el mismo runtime que sirve las páginas, y desplegar todo el sistema como una sola unidad. La separación lógica entre módulos se logra mediante una estructura de directorios clara (\texttt{src/lib/*} para lógica de dominio, \texttt{src/app/api/*} para rutas HTTP, \texttt{src/components/*} para UI) y through strict module boundaries enforced por ESLint.
+
+\section{Componentes principales}
+El sistema se descompone en los siguientes componentes lógicos:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Frontend (Next.js 16 + React 19.2).} Aplicación de una sola página (SPA) con renderizado híbrido: las páginas de marketing y autenticación usan SSR para SEO y velocidad de carga; la aplicación autenticada usa CSR con prefetching agresivo para maximizar la interactividad.
+\item \textbf{API Layer (Next.js API Routes).} 22 rutas REST cubriendo autenticación, perfiles, módulos de aprendizaje (conversación, texto, voz), facturación, agentes, administración, métricas y documentos. Cada ruta aplica validación Zod, autenticación JWT y rate limiting.
+\item \textbf{Domain Layer (src/lib/*).} 15 módulos de lógica de dominio: \texttt{algorithms} (evaluación matemática pura), \texttt{pedagogy} (IRT, FSRS, Weibull), \texttt{agents} (orquestador + 5 agentes), \texttt{billing} (Mercado Pago), \texttt{auth} (Argon2id + JWT + RBAC), \texttt{rag} (vector store + retrieval), \texttt{memory} (memoria dual), \texttt{lil} (Learning Intelligence Layer), \texttt{events} (event bus), \texttt{observability} (logger + tracer + métricas), \texttt{types} (tipos compartidos), \texttt{llm} (adaptador OpenRouter-compatible).
+\item \textbf{Persistencia (Prisma 7 + SQLite).} 30+ modelos en 13 grupos de entidades con índices estratégicos. SQLite en MVP para costo cero y operación local; migración a PostgreSQL gestionada por cambio de una línea en \texttt{schema.prisma}.
+\item \textbf{Vector Store (en memoria, interfaz Qdrant-compatible).} Implementación \texttt{InMemoryVectorStore} con la misma interfaz que el cliente Qdrant, permitiendo migración sin refactorización cuando se active Qdrant Cloud en producción.
+\item \textbf{LLM Gateway (z-ai-web-dev-sdk).} Adaptador compatible con la API de OpenRouter que enruta a DeepSeek V4-Flash en MVP, con failover automático a otros modelos (GPT-5.4, Gemini 2.5 Pro, Claude 3.5 Sonnet) vía configuración.
+\item \textbf{WebSocket Service (mini-services/chat-service).} Servicio Node.js independiente en puerto 3003 para comunicación en tiempo real durante sesiones de conversación (indicador de «escribiendo», streaming de respuestas).
+\item \textbf{Observability Stack.} Logger estructurado JSON, tracer OpenTelemetry, persistencia de eventos en tabla \texttt{SystemEvent}, persistencia de auditoría en tabla \texttt{AuditLog}, persistencia de llamadas a herramientas de agentes en tabla \texttt{AgentToolCall}.
+\end{enumerate}
+
+\section{Diagrama de capas}
+La arquitectura se organiza en 7 capas horizontales con flujo de dependencias unidireccional descendente:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2.8cm}p{3.5cm}p{7.5cm}}
+\toprule
+\textbf{Capa} & \textbf{Componentes} & \textbf{Responsabilidad} \\
+\midrule
+Presentación & React 19, Tailwind 4, shadcn/ui & Renderizado de UI, manejo de estado del cliente, captura de input del usuario \\
+API & Next.js API Routes, Zod, JWT & Validación de entrada, autenticación, autorización RBAC, rate limiting, serialización de salida \\
+Orquestación & AgentOrchestrator, ToolLayer & Coordinación de agentes, ejecución de herramientas, gestión de eventos \\
+Dominio & LIL, Algorithms, Pedagogy & Lógica de negocio pura, sin dependencias externas; testeable de forma aislada \\
+Infraestructura & Prisma, VectorStore, LLM, Billing & Acceso a datos, servicios externos, pagos \\
+Persistencia & SQLite/Postgres, In-memory vectors & Almacenamiento duradero y efímero \\
+Observabilidad & Logger, Tracer, AuditLog, SystemEvent & Trazabilidad end-to-end, métricas, auditoría \\
+\bottomrule
+\end{tabular}
+\caption{Capas arquitectónicas de Axiom}
+\end{table}
+
+\section{Flujo de una solicitud típica}
+Para ilustrar el flujo end-to-end, consideremos una solicitud POST al endpoint \texttt{/api/modules} para iniciar una nueva sesión de conversación con el tutor IA:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item El cliente React envía \texttt{POST /api/modules} con body \texttt{\{mode: conversation, message: Hello\}} y header \texttt{Authorization: Bearer <jwt>}.
+\item \texttt{src/middleware.ts} intercepta la solicitud, valida el formato del JWT, extrae el \texttt{userId} y el \texttt{role}, y los inyecta como headers \texttt{x-user-id} y \texttt{x-user-role}.
+\item El handler \texttt{src/app/api/modules/route.ts} ejecuta el pipeline: validación Zod del body, obtención del usuario desde Prisma, verificación de cuota del plan, inicialización del contexto de sesión.
+\item Se invoca el orquestador de agentes \texttt{AgentOrchestrator.dispatch} con argumentos \texttt{\{agent: ai-tutor, task: respond, context\}}, que registra un \texttt{AgentRun} en la base de datos.
+\item El agente AI Tutor ejecuta su ciclo: Lee memoria de corto plazo del usuario, recupera contexto RAG relevante (vía tool \texttt{rag.retrieve}), construye el prompt con el sistema pedagógico (nivel CEFR, errores recientes), invoca el LLM vía \texttt{llm.complete()}.
+\item El LLM devuelve una respuesta; el agente puede invocar herramientas adicionales (memoria de escritura, actualización de progreso, revisión de vocabulario) antes de retornar.
+\item Cada invocación de herramienta se persiste en \texttt{AgentToolCall} con argumentos, resultado, duración y éxito.
+\item El handler serializa la respuesta en JSON, persiste un \texttt{AuditLog} con la acción, y devuelve al cliente con código 201.
+\item El cliente React recibe la respuesta, actualiza el estado de la conversación, persiste localmente en \texttt{localStorage} para recuperación, y muestra la burbuja de chat con animación.
+\end{enumerate}
+
+\section{Decisiones arquitectónicas clave}
+Durante el diseño se documentaron 8 decisiones arquitectónicas significativas (Architecture Decision Records, ADRs):
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{ADR-001: Monolito Next.js sobre microservicios.} Justificación: equipo pequeño, MVP, simplicidad operacional. Reversibilidad: alta — migración a microservicios en Fase 3.
+\item \textbf{ADR-002: SQLite sobre PostgreSQL en MVP.} Justificación: costo cero, operación local sin Docker. Reversibilidad: alta — cambio de una línea en \texttt{schema.prisma}.
+\item \textbf{ADR-003: VectorStore en memoria sobre Qdrant Cloud en MVP.} Justificación: sandbox sin Docker, Qdrant Cloud requiere cuenta externa. Reversibilidad: alta — misma interfaz.
+\item \textbf{ADR-004: DeepSeek V4-Flash sobre GPT-5.4 en MVP.} Justificación: 30× más barato (\$0.14 vs \$4.50 por M input tokens), calidad suficiente para el caso de uso. Reversibilidad: total — vía OpenRouter.
+\item \textbf{ADR-005: Argon2id sobre bcrypt para hashing de contraseñas.} Justificación: ganador de la Password Hashing Competition 2015, resistente a GPU y a ataques de canal lateral.
+\item \textbf{ADR-006: JWT sobre sesiones server-side.} Justificación: escalabilidad horizontal sin estado compartido. Mitigación de revocación: tabla \texttt{AuthSession} con \texttt{jti} para invalidación.
+\item \textbf{ADR-007: Mercado Pago sobre Stripe en MVP.} Justificación: 80\% del mercado mexicano de pagos digitales, sin requisitos de constitución de entidad legal estadounidense. Stripe se añade en Fase 2 para usuarios internacionales.
+\item \textbf{ADR-008: In-process event bus sobre Kafka/Redis Streams.} Justificación: simplicidad MVP, sin dependencia externa de broker. Migración a Redis Streams en Fase 3.
+\end{enumerate}
+
+\chapter{Stack Tecnológico}
+
+\section{Tecnologías seleccionadas}
+La selección del stack tecnológico de Axiom responde a tres criterios: (1) \textbf{modernidad} — tecnologías activamente mantenidas con comunidad robusta y roadmap a largo plazo; (2) \textbf{productividad del equipo pequeño} — minimización de contexto switching entre lenguajes y runtimes; (3) \textbf{costo de infraestructura mínimo en Fase 1} — preferencia por servicios administrados con free tier generoso o self-hosting simple.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3.5cm}p{5cm}p{5cm}}
+\toprule
+\textbf{Capa} & \textbf{Tecnología} & \textbf{Versión / Justificación} \\
+\midrule
+Lenguaje & TypeScript 5.7 & Tipado estático estricto, inferencia mejorada \\
+Runtime & Node.js 22 LTS & Soporte a largo plazo, performance estable \\
+Framework web & Next.js 16 & App Router, Turbopack, Server Components \\
+UI lib & React 19.2 & Server Actions, useOptimistic, use \\
+Estilos & Tailwind CSS 4 & Configuración CSS-first, performance superior \\
+Componentes UI & shadcn/ui v4 & Basado en Radix UI, customizable, sin vendor lock-in \\
+ORM & Prisma 7 & Tipado nativo TypeScript, migraciones declarativas \\
+DB (MVP) & SQLite & Costo cero, operación local \\
+DB (Release) & PostgreSQL (Supabase Pro) & RLS, réplicas, \$25/mes MVP, \$599/mes Release \\
+Vector DB (MVP) & In-memory VectorStore & Interfaz compatible con Qdrant \\
+Vector DB (Release) & Qdrant Cloud → self-hosted K8s & 1024-dim, HNSW, filtrado metadata \\
+LLM MVP & DeepSeek V4-Flash & \$0.14/\$0.28 por M tokens, calidad B2-C1 \\
+LLM Release & DeepSeek V4-Pro (+ LoRA) & Calidad C1-C2, fine-tuning por dominio \\
+LLM Gateway & OpenRouter & Failover multi-provider, 400+ modelos \\
+Embeddings & BGE-M3 & Open source, 1024 dims, multilingual \\
+Cache & Redis (Upstash) & Serverless, pay-per-request \\
+Object Storage & Cloudflare R2 & \$0 egress, compatible S3 \\
+Observabilidad & Sentry + PostHog + Langfuse + Grafana Cloud + OTel & Stack completo, \$26/mes MVP \\
+Pagos & Mercado Pago (80\%) + Stripe (20\%) & Cobertura MX e internacional \\
+Testing & Vitest + Playwright + k6 & Unit + E2E + load \\
+CI/CD & GitHub Actions & Lint + unit + e2e + load en cada PR \\
+\bottomrule
+\end{tabular}
+\caption{Stack tecnológico completo de Axiom}
+\end{table}
+
+\section{Justificación de DeepSeek V4}
+La selección de \textbf{DeepSeek V4-Flash} como LLM principal del MVP merece justificación detallada, dado que compite contra alternativas más conocidas como GPT-5.4 (OpenAI), Gemini 2.5 Pro (Google) y Claude 3.5 Sonnet (Anthropic). Los criterios de decisión fueron:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Costo.} DeepSeek V4-Flash cobra \textbf{\$0.14 USD por millón de tokens de entrada} y \textbf{\$0.28 USD por millón de tokens de salida}. GPT-5.4 cobra \$4.50/\$12.00 (32× y 43× más caro respectivamente). Para un usuario promedio que consume 50K tokens/día, el costo mensual con DeepSeek es de \$0.42 USD vs \$13.50 USD con GPT-5.4. Con 1,000 usuarios activos, el ahorro anual supera los \$150,000 USD.
+\item \textbf{Calidad.} En benchmarks estándar (MMLU, HumanEval, GSM8K), DeepSeek V4-Flash alcanza 86--91\% del rendimiento de GPT-5.4, suficiente para el caso de uso pedagógico de Axiom. Para usuarios avanzados (CEFR C1-C2) se activará V4-Pro con calidad equivalente o superior a GPT-5.4.
+\item \textbf{Latencia.} DeepSeek V4-Flash tiene TTFT (time-to-first-token) de 0.4--0.8s en pico, comparable a GPT-5.4-mini y adecuado para conversación en tiempo real.
+\item \textbf{Soporte multilingual.} DeepSeek V4 fue entrenado con corpus multilingüe incluyendo español, con calidad de razonamiento comparable al inglés en niveles B2-C1.
+\item \textbf{Soporte para fine-tuning.} DeepSeek ofrece LoRA fine-tuning a costo accesible (\$0.50/M tokens), permitiendo a Axiom crear modelos especializados por dominio profesional (software, finanzas, manufactura) —el \textit{flywheel moat} del producto.
+\end{itemize}
+
+\section{Costos de infraestructura por fase}
+El modelo de costos de infraestructura se calibra por fase de crecimiento:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2.8cm}p{2.5cm}p{2.5cm}p{5.5cm}}
+\toprule
+\textbf{Componente} & \textbf{Fase 1 (USD/mes)} & \textbf{Fase 3 (USD/mes)} & \textbf{Notas} \\
+\midrule
+Vercel hosting & Free & Pro \$20 & MVP en free tier, escalado en Fase 3 \\
+Supabase DB & --- & \$599 & MVP usa SQLite local \\
+Qdrant Cloud & Free & Self-hosted & Fase 3: K8s self-hosted, \$200/mes \\
+Upstash Redis & Free & \$30 & Pay-per-request \\
+Cloudflare R2 & Free & \$20 & \$0 egress \\
+OpenRouter (LLM) & \$50 & \$1,500 & Escala con usuarios \\
+Sentry & Free & \$26 & Error tracking \\
+PostHog & Free & Free & Product analytics \\
+Langfuse & Free & Free & LLM observability \\
+Grafana Cloud & Free & Free & Métricas \\
+Dominio + DNS & \$1 & \$1 & Cloudflare \\
+Mercado Pago & 0\% & 2.49\% + IVA & Solo comisión por transacción \\
+\midrule
+\textbf{Total} & \textbf{≈\$113} & \textbf{≈\$2,496} & En Fase 3 con 1,000+ usuarios \\
+\bottomrule
+\end{tabular}
+\caption{Costos de infraestructura por fase}
+\end{table}
+
+\chapter{Esquema de Base de Datos}
+
+\section{Visión general del esquema}
+El esquema de base de datos de Axiom se implementa con \textbf{Prisma 7} y comprende \textbf{30+ modelos distribuidos en 13 grupos de entidades}, totalizando 1,047 líneas en \texttt{prisma/schema.prisma}. La organización sigue el principio de \textbf{separación por dominio funcional}: cada grupo agrupa modelos que cambian juntos por las mismas razones (cohesión) y son independientes de otros grupos (acoplamiento bajo).
+
+\section{Grupos de entidades}
+Los 13 grupos de entidades son:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Autenticación y Usuarios} — User, AuthSession, PasswordResetToken, UserRole
+\item \textbf{Perfiles y Progreso} — UserProfile, UserProgress
+\item \textbf{Suscripciones y Pagos} — Plan, Subscription, Payment
+\item \textbf{Sesiones de Aprendizaje} — LearningSession, Message
+\item \textbf{Documentos y RAG} — UserDocument, DocumentChunk
+\item \textbf{Memoria de Agentes} — AgentMemory, AgentRun, AgentToolCall
+\item \textbf{Vocabulario y Repaso} — VocabularyItem, ReviewSchedule
+\item \textbf{Errores y Métricas} — ErrorEvent, MetricPoint
+\item \textbf{Eventos del Sistema} — SystemEvent
+\item \textbf{Auditoría} — AuditLog
+\item \textbf{Feature Flags y Experimentos} — FeatureFlag, FeatureFlagAssignment, Experiment, ExperimentAssignment
+\item \textbf{Resultados de Algoritmos} — TypingResult, TranslationResult
+\item \textbf{RBAC} — Role, Permission, RolePermission
+\end{enumerate}
+
+\section{Modelo central: User}
+El modelo \texttt{User} es el agregado raíz del esquema, con relaciones a 19 modelos:
+
+\begin{lstlisting}[style=sql,caption={Modelo User en Prisma}]
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  passwordHash    String
+  name            String?
+  emailVerifiedAt DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  lastLoginAt     DateTime?
+
+  profile         UserProfile?
+  subscriptions   Subscription[]
+  sessions        AuthSession[]
+  learningSessions LearningSession[]
+  documents       UserDocument[]
+  agentMemories   AgentMemory[]
+  agentRuns       AgentRun[]
+  auditLogs       AuditLog[]
+  events          SystemEvent[]      @relation("EventProducer")
+  consumedEvents  SystemEvent[]      @relation("EventConsumer")
+  payments        Payment[]
+  featureFlags    FeatureFlagAssignment[]
+  experimentAssignments ExperimentAssignment[]
+  progress        UserProgress[]
+  vocabularyItems VocabularyItem[]
+  reviewSchedules ReviewSchedule[]
+  errorEvents     ErrorEvent[]
+  metricPoints    MetricPoint[]
+  resetTokens     PasswordResetToken[]
+  userRoles       UserRole[]
+  typingResults   TypingResult[]
+  translationResults TranslationResult[]
+
+  @@index([email])
+  @@index([createdAt])
+}
+\end{lstlisting}
+
+\section{Modelo de sesiones de aprendizaje}
+Las sesiones de aprendizaje (LearningSession) y sus mensajes asociados (Message) constituyen el núcleo del registro de actividad pedagógica:
+
+\begin{lstlisting}[style=sql,caption={Modelos LearningSession y Message}]
+model LearningSession {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  module      Module   // "conversation" | "text" | "voice" | "typing" | "translation"
+  mode        String?  // sub-mode (e.g. "professional_writing")
+  startedAt   DateTime @default(now())
+  endedAt     DateTime?
+  durationSec Int      @default(0)
+  status      String   @default("active")  // "active" | "completed" | "abandoned"
+  metadata    String?  // JSON string with session-specific data
+  messages    Message[]
+
+  @@index([userId, startedAt])
+  @@index([status])
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  sessionId   String
+  session     LearningSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role        String   // "user" | "assistant" | "system"
+  content     String
+  createdAt   DateTime @default(now())
+  tokensIn    Int      @default(0)
+  tokensOut   Int      @default(0)
+  latencyMs   Int      @default(0)
+  metadata    String?  // JSON: errors, corrections, CEFR adjustments
+
+  @@index([sessionId, createdAt])
+}
+\end{lstlisting}
+
+\section{Modelo de RAG: documentos y chunks}
+El pipeline RAG se soporta sobre dos modelos: \texttt{UserDocument} para metadatos del documento original, y \texttt{DocumentChunk} para los fragmentos embebidos:
+
+\begin{lstlisting}[style=sql,caption={Modelos UserDocument y DocumentChunk}]
+model UserDocument {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  filename     String
+  mimeType     String
+  sizeBytes    Int
+  storageKey   String   // R2 object key
+  status       String   @default("pending")  // "pending" | "processing" | "ready" | "failed"
+  chunkCount   Int      @default(0)
+  totalTokens  Int      @default(0)
+  language     String?  // detected language
+  domain       String?  // detected professional domain
+  uploadedAt   DateTime @default(now())
+  processedAt  DateTime?
+  chunks       DocumentChunk[]
+
+  @@index([userId, uploadedAt])
+  @@index([status])
+}
+
+model DocumentChunk {
+  id           String   @id @default(cuid())
+  documentId   String
+  document     UserDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  content      String   // the chunk text
+  tokens       Int      // token count
+  position     Int      // position in document
+  embedding    String?  // JSON-serialized float[] (1024 dims BGE-M3)
+  // Vector is also indexed in VectorStore for similarity search
+  metadata     String?  // JSON: heading, page, section
+
+  @@index([documentId, position])
+}
+\end{lstlisting}
+
+\section{Modelos de auditoría y observabilidad}
+La trazabilidad se soporta sobre tres tablas: \texttt{AuditLog} para acciones de usuario, \texttt{SystemEvent} para eventos del sistema, y \texttt{AgentToolCall} para llamadas a herramientas de agentes:
+
+\begin{lstlisting}[style=sql,caption={Modelos de auditoría}]
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String   // "login" | "module.start" | "payment.create" | ...
+  resource    String?
+  resourceId  String?
+  ipAddress   String?
+  userAgent   String?
+  metadata    String?  // JSON
+  success     Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+}
+
+model SystemEvent {
+  id           String   @id @default(cuid())
+  type         String   // 15 event types
+  producerId   String?
+  producer     User?    @relation("EventProducer", fields: [producerId], references: [id])
+  consumerId   String?
+  consumer     User?    @relation("EventConsumer", fields: [consumerId], references: [id])
+  payload      String   // JSON
+  processedAt  DateTime?
+  createdAt    DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([processedAt])
+}
+
+model AgentToolCall {
+  id          String   @id @default(cuid())
+  agentRunId  String
+  agentRun    AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+  toolName    String   // "rag.retrieve" | "memory.write" | ...
+  arguments   String   // JSON
+  result      String?  // JSON
+  durationMs  Int
+  success     Boolean
+  error       String?
+  createdAt   DateTime @default(now())
+
+  @@index([agentRunId])
+  @@index([toolName, createdAt])
+}
+\end{lstlisting}
+
+\section{Índices estratégicos}
+El esquema define índices compuestos en los patrones de acceso más frecuentes:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \texttt{User.email} (único) — login lookup
+\item \texttt{AuthSession.[userId, createdAt]} — listado de sesiones por usuario
+\item \texttt{LearningSession.[userId, startedAt]} — historial de sesiones
+\item \texttt{Message.[sessionId, createdAt]} — conversación ordenada
+\item \texttt{UserDocument.[userId, uploadedAt]} — documentos recientes
+\item \texttt{DocumentChunk.[documentId, position]} — reconstrucción de documento
+\item \texttt{AuditLog.[userId, createdAt]} y \texttt{[action, createdAt]} — reportes
+\item \texttt{SystemEvent.[type, createdAt]} — procesamiento por tipo
+\item \texttt{ReviewSchedule.[userId, dueDate]} — repasos pendientes (FSRS)
+\item \texttt{VocabularyItem.[userId, cefrLevel]} — filtrado por nivel
+\end{itemize}
+
+\section{Migración SQLite a PostgreSQL}
+La migración de SQLite a PostgreSQL para Fase 2-3 requiere únicamente:
+
+\begin{lstlisting}[style=sql,caption={Cambio de provider en schema.prisma}]
+// MVP (SQLite)
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Producción (PostgreSQL)
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+\end{lstlisting}
+
+\vspace{4pt}
+Tras el cambio, se ejecuta \texttt{prisma migrate deploy} y Prisma genera las sentencias SQL específicas de PostgreSQL. Los tipos en código TypeScript no cambian. Esta es una de las principales ventajas de usar Prisma como ORM: el costo de migración entre motores relacionales es mínimo.
+
+
+\chapter{Algoritmos Matemáticos}
+
+\section{Filosofía: evaluación algorítmica pura}
+Una decisión arquitectónica clave de Axiom es que \textbf{la evaluación de mecanografía y traducción se realiza mediante algoritmos matemáticos puros, sin intervención del LLM}. Esta decisión responde a tres motivos: (1) \textbf{costo} — cada llamada al LLM cuesta entre \$0.001 y \$0.01 USD, lo cual escala mal para ejercicios de práctica frecuente; (2) \textbf{latencia} — los algoritmos puros responden en <5ms, mientras que el LLM tarda 0.4-2s; (3) \textbf{determinismo} — un estudiante debe recibir el mismo puntaje para el mismo desempeño, sin variabilidad aleatoria.
+
+El módulo \texttt{src/lib/algorithms/index.ts} (629 líneas) implementa tres familias de algoritmos: evaluación de mecanografía, evaluación de traducción, y análisis fonético de pronunciación. Todos son funciones puras sin efectos secundarios, testeables de forma aislada.
+
+\section{Evaluación de mecanografía (Typing)}
+El algoritmo de mecanografía recibe un texto objetivo y una secuencia de keystrokes registradas con timestamps, y produce un puntaje compuesto. La interfaz es:
+
+\begin{lstlisting}[style=ts,caption={Tipos para evaluación de mecanografía}]
+interface TypingKeystroke {
+  char: string        // the character typed
+  expected: string    // the expected character
+  position: number    // position in text
+  timestamp: number   // ms from start
+  correct: boolean    // was it correct?
+  corrected: boolean  // was it backspaced and corrected?
+}
+
+interface TypingResult {
+  wpm: number              // words per minute (adjusted for accuracy)
+  rawWpm: number           // raw WPM before penalty
+  accuracy: number         // 0-1 (correct chars / total chars)
+  consistency: number      // 0-1 (1 - normalized std dev of keystroke timing)
+  errorCount: number       // total errors
+  correctedErrors: number  // errors that were backspaced
+  uncorrectedErrors: number // errors left at end
+  totalKeystrokes: number
+  correctKeystrokes: number
+  durationSec: number
+  skillScore: number       // 0-100 composite
+  cefrLevel: string        // inferred CEFR
+  errors: { char: string; expected: string; typed: string;
+            position: number; timestamp: number }[]
+}
+\end{lstlisting}
+
+\subsection{Fórmulas implementadas}
+
+\textbf{Raw WPM} (velocidad bruta, sin penalización):
+\begin{equation}
+\text{rawWPM} = \frac{\text{totalKeystrokes} / 5}{\text{duración}_{\text{min}}}
+\end{equation}
+
+La convención de 5 caracteres = 1 palabra es estándar de la industria (adoptada por Dvorak, typing.com, keybr.com).
+
+\textbf{Accuracy} (precisión cruda):
+\begin{equation}
+\text{accuracy} = \frac{\text{correctKeystrokes}}{\text{totalKeystrokes}}
+\end{equation}
+
+\textbf{WPM ajustado} (penaliza errores no corregidos):
+\begin{equation}
+\text{wpm} = \text{rawWPM} \cdot \max\left(0, 1 - \frac{\text{uncorrectedErrors}}{\text{totalChars}}\right)
+\end{equation}
+
+\textbf{Consistency} (consistencia del ritmo):
+\begin{align}
+\text{intervals}_i &= t_i - t_{i-1} \quad \text{filtrando outliers} > 5\text{s} \\
+\bar{I} &= \frac{1}{n}\sum_{i=1}^{n} \text{intervals}_i \\
+\sigma_I &= \sqrt{\frac{1}{n}\sum_{i=1}^{n} (\text{intervals}_i - \bar{I})^2} \\
+\text{consistency} &= \max\left(0, 1 - \frac{\sigma_I}{\bar{I}}\right)
+\end{align}
+
+\textbf{Skill Score compuesto} (0-100):
+\begin{equation}
+\text{skillScore} = 100 \cdot \left(0.4 \cdot \text{normWPM} + 0.3 \cdot \text{accuracy} + 0.3 \cdot \text{consistency}\right)
+\end{equation}
+
+Donde $\text{normWPM} = \min(1, \text{wpm} / 80)$ normaliza contra un techo de 80 WPM (velocidad de un escritor experto).
+
+\textbf{Mapeo a CEFR}:
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{CEFR} & \textbf{WPM mínimo} & \textbf{Accuracy mínima} \\
+\midrule
+A1 & 15 & 70\% \\
+A2 & 25 & 75\% \\
+B1 & 35 & 80\% \\
+B2 & 45 & 85\% \\
+C1 & 55 & 90\% \\
+C2 & 65 & 92\% \\
+\bottomrule
+\end{tabular}
+\caption{Umbrales WPM/Accuracy por nivel CEFR}
+\end{table}
+
+\section{Evaluación de traducción (Translation)}
+El algoritmo de traducción evalúa la calidad de una traducción propuesta por el estudiante comparándola con una referencia. Se implementa mediante una combinación de:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{BLEU score simplificado} para coincidencia de n-gramas (n=1,2,3,4).
+\item \textbf{Levenshtein distance normalizada} para errores ortográficos.
+\item \textbf{Análisis de longitud} para detectar omisiones o adiciones.
+\item \textbf{Tokenización con stemming} para tolerancia a variaciones morfológicas.
+\end{enumerate}
+
+\subsection{BLEU score}
+
+\begin{equation}
+\text{BLEU} = \text{BP} \cdot \exp\left(\sum_{n=1}^{N} w_n \log p_n\right)
+\end{equation}
+
+Donde:
+\begin{itemize}[leftmargin=1.4em]
+\item $p_n$ = precisión de n-gramas modificada (clipada por la referencia)
+\item $w_n = 1/N$ con $N=4$ (pesos uniformes)
+\item BP (brevity penalty) = $1$ si $c > r$, sino $\exp(1 - r/c)$
+\end{itemize}
+
+\subsection{Levenshtein normalizada}
+
+\begin{equation}
+\text{normLev} = 1 - \frac{\text{Levenshtein}(\text{hyp}, \text{ref})}{\max(|\text{hyp}|, |\text{ref}|)}
+\end{equation}
+
+\subsection{Puntaje compuesto de traducción}
+
+\begin{equation}
+\text{translationScore} = 100 \cdot \left(0.5 \cdot \text{BLEU} + 0.3 \cdot \text{normLev} + 0.2 \cdot \text{lengthScore}\right)
+\end{equation}
+
+Donde $\text{lengthScore} = 1 - |len(\text{hyp}) - len(\text{ref})| / len(\text{ref})$ penaliza desviaciones de longitud.
+
+\section{Análisis fonético de pronunciación}
+Para evaluación de pronunciación, Axiom implementa un algoritmo basado en \textbf{alineamiento Levenshtein a nivel fonético} usando el alfabeto ARPABET. El flujo es:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item Captura de audio del usuario vía \texttt{MediaRecorder} en el navegador (WebM/Opus).
+\item Transcripción local con Web Speech API (cuando esté disponible) o envío al backend.
+\item Conversión de la transcripción a fonemas ARPABET usando un diccionario lookup.
+\item Comparación con los fonemas esperados del texto objetivo mediante Levenshtein.
+\item Cálculo de métricas: precisión fonética, ritmo (timing relativo), fluidez (pausas).
+\item Generación de feedback específico: «You pronounced /θ/ as /t/ in 'think'».
+\end{enumerate}
+
+\section{Validación de tests}
+Los tests unitarios en \texttt{tests/unit/} validan los algoritmos con casos de prueba cubriendo: casos perfectos, casos con errores controlados, casos extremos (texto vacío, keystrokes negativos), y casos aleatorios con RNG seed fija para reproducibilidad.
+
+\chapter{Pipeline RAG}
+
+\section{Visión general del pipeline}
+El pipeline RAG (Retrieval-Augmented Generation) es el \textbf{foso competitivo principal} de Axiom. Su función es ingerir los documentos profesionales del usuario, trocearlos semánticamente, generar embeddings vectoriales, y en tiempo de consulta recuperar los fragmentos más relevantes para inyectarlos en el prompt del LLM. La calidad del pipeline RAG determina directamente la calidad de la personalización pedagógica del producto.
+
+El pipeline se compone de 7 etapas secuenciales, cada una con responsabilidades bien delimitadas:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Ingesta.} El usuario carga un documento (PDF, DOCX, TXT, MD) vía la UI. El archivo se transfiere al backend, se valida el MIME type y el tamaño (máx 10 MB en plan Básico, 50 MB en Pro), y se persiste el metadata en \texttt{UserDocument} con estado \texttt{pending}.
+\item \textbf{Almacenamiento.} El archivo binario se sube a Cloudflare R2 (en producción) o al filesystem local (en MVP). Se genera un \texttt{storageKey} único (cuid + extensión) y se actualiza el registro \texttt{UserDocument}.
+\item \textbf{Extracción de texto.} Según el MIME type: \texttt{pdfplumber} para PDF, \texttt{python-docx} para DOCX, lectura directa para TXT/MD. Para PDFs escaneados, se aplica \texttt{Tesseract OCR} con detección automática de idioma.
+\item \textbf{Troceado (chunking).} Se aplica \textit{recursive character splitting} con tamaño objetivo de 300--1000 tokens y 10\% de overlap. En Fase 2 se migrará a \textit{semantic chunking} usando embeddings para detectar fronteras temáticas naturales.
+\item \textbf{Embeddings.} Cada chunk se procesa con el modelo \textbf{BGE-M3} (1024 dimensiones, multilingüe, open source). Los embeddings se serializan como \texttt{Float32Array} y se persisten tanto en \texttt{DocumentChunk.embedding} como en el VectorStore.
+\item \textbf{Indexación.} El VectorStore mantiene un índice HNSW (Hierarchical Navigable Small World) para búsqueda aproximada de vecinos en tiempo logarítmico. En MVP se usa implementación en memoria; en Release, Qdrant con persistencia en disco.
+\item \textbf{Recuperación (retrieval).} En tiempo de consulta, la query del usuario se embebe con BGE-M3, se busca en el VectorStore con cosine similarity, se aplica filtrado por metadata (CEFR level, domain, language), y se reordena con un reranker (Cohere Rerank 3 o bge-reranker-v2-m3 en Release).
+\end{enumerate}
+
+\section{Implementación del VectorStore}
+La implementación del VectorStore en memoria sigue la misma interfaz que el cliente Qdrant, permitiendo migración sin refactorización:
+
+\begin{lstlisting}[style=ts,caption={Interfaz VectorStore}]
+interface VectorStore {
+  upsert(collection: string, points: VectorPoint[]): Promise<void>
+  search(query: number[], options: SearchOptions): Promise<VectorMatch[]>
+  delete(collection: string, ids: string[]): Promise<void>
+  createCollection(name: string, config: CollectionConfig): Promise<void>
+}
+
+interface VectorPoint {
+  id: string
+  vector: number[]  // 1024 dims BGE-M3
+  payload: Record<string, any>  // userId, documentId, cefrLevel, domain, ...
+}
+
+interface VectorMatch {
+  id: string
+  score: number  // cosine similarity 0-1
+  payload: Record<string, any>
+}
+
+interface SearchOptions {
+  collection: string
+  topK: number
+  filter?: Record<string, any>  // metadata filtering
+  scoreThreshold?: number
+}
+\end{lstlisting}
+
+\section{Algoritmo HNSW}
+El VectorStore en memoria implementa el algoritmo \textbf{Hierarchical Navigable Small World (HNSW)} para búsqueda aproximada de vecinos más cercanos. HNSW construye un grafo multinivel donde los niveles superiores contienen menos nodos y sirven como «autopistas» para navegación rápida, mientras los niveles inferiores contienen todos los nodos y permiten refinamiento fino. Los parámetros calibrados son:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \texttt{M = 16}: número máximo de conexiones por nodo en niveles superiores.
+\item \texttt{efConstruction = 200}: tamaño de la lista dinámica durante la construcción.
+\item \texttt{efSearch = 50}: tamaño de la lista dinámica durante la búsqueda (trade-off precisión/latencia).
+\item \texttt{ml = 1/ln(M)}: factor de decaimiento para asignación de nivel.
+\end{itemize}
+
+Con estos parámetros, la búsqueda en un índice de 100,000 vectores toma <2ms con recall@10 > 0.95.
+
+\section{Retrieval adaptativo}
+El módulo \texttt{src/lib/rag/retrieval.ts} (223 líneas) implementa la recuperación adaptativa, que combina tres señales para rankear los chunks recuperados:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Similitud coseno} con la query (peso 0.5).
+\item \textbf{Ajuste por dificultad CEFR} — penaliza chunks con dificultad muy superior al nivel del usuario (peso 0.2).
+\item \textbf{Boost por errores recientes} — incrementa el score de chunks que contienen vocabulario o estructuras en los que el usuario ha tenido errores recientes (peso 0.3).
+\end{enumerate}
+
+\begin{lstlisting}[style=ts,caption={Recuperación adaptativa}]
+async function adaptiveRetrieve(
+  query: string,
+  userId: string,
+  options: { topK?: number; cefrLevel?: string }
+): Promise<VectorMatch[]> {
+  const queryEmbedding = await embed(query)
+  const userErrors = await getRecentErrors(userId, { limit: 50 })
+  const userCefr = options.cefrLevel ?? await getUserCefr(userId)
+
+  const candidates = await vectorStore.search(queryEmbedding, {
+    collection: 'user_documents',
+    topK: options.topK ?? 10,
+    filter: { userId },
+  })
+
+  return candidates.map(match => {
+    let score = match.score * 0.5
+
+    // CEFR adjustment: penalize too-hard chunks
+    const chunkCefr = match.payload.cefrLevel
+    const cefrGap = Math.abs(cefrToLogit(chunkCefr) - cefrToLogit(userCefr))
+    const cefrScore = Math.max(0, 1 - cefrGap * 0.3)
+    score += cefrScore * 0.2
+
+    // Error boost: chunks containing user's error patterns
+    const errorOverlap = computeErrorOverlap(match.payload.content, userErrors)
+    score += errorOverlap * 0.3
+
+    return { ...match, score }
+  }).sort((a, b) => b.score - a.score)
+}
+\end{lstlisting}
+
+\section{Evaluación del pipeline RAG}
+La calidad del pipeline RAG se evalúa con el framework \textbf{RAGAS} (RAG Assessment), que mide cuatro métricas:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Faithfulness}: la respuesta generada está respaldada por el contexto recuperado (sin alucinaciones).
+\item \textbf{Answer Relevancy}: la respuesta responde directamente a la pregunta del usuario.
+\item \textbf{Context Precision}: los chunks recuperados son relevantes para la pregunta.
+\item \textbf{Context Recall}: los chunks recuperados contienen toda la información necesaria.
+\end{itemize}
+
+En el conjunto de evaluación interno (50 pares pregunta-respuesta), el pipeline actual alcanza: Faithfulness 0.91, Answer Relevancy 0.87, Context Precision 0.83, Context Recall 0.79. El objetivo para Fase 2 es elevar Context Recall por encima de 0.90 mediante la adopción de reranking con bge-reranker-v2-m3.
+
+\chapter{Sistema de Agentes IA}
+
+\section{Arquitectura del sistema de agentes}
+Axiom implementa un sistema de \textbf{cinco agentes IA especializados}, coordinados por un orquestador central. La arquitectura se inspira en el patrón \textit{Multi-Agent System} popularizado por AutoGen y CrewAI, pero con simplificaciones deliberadas para optimizar el contexto de un equipo pequeño y la latencia de respuesta.
+
+Los cinco agentes son:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{AI Tutor} — Agente pedagógico principal. Responsable de generar respuestas en la conversación, proponer ejercicios adaptados al nivel del usuario, y mantener un tono motivador y culturalmente apropiado para el contexto mexicano. Es el agente más invocado y el único que interactúa directamente con el usuario.
+\item \textbf{Learning Agent} — Agente metacognitivo. Analiza patrones de aprendizaje del usuario, identifica áreas de mejora (gramática, vocabulario, pronunciación), y propone la próxima actividad óptima según el algoritmo FSRS y el historial reciente. Se ejecuta asíncronamente tras cada sesión.
+\item \textbf{Analytics Agent} — Agente de análisis. Calcula métricas de engagement, progreso, y predicción de abandono (churn). Se ejecuta diariamente y alimenta el dashboard del usuario y los reportes administrativos.
+\item \textbf{Product Agent} — Agente de producto. Monitorea el uso de features, detecta fricción (e.g. usuarios atascados en un flujo), y propone experimentos A/B. Se ejecuta semanalmente.
+\item \textbf{Engineering Agent} — Agente de ingeniería. Monitorea errores, latencia, y uso de recursos. Detecta anomalías y propone optimizaciones. Se ejecuta en tiempo real ante eventos críticos.
+\end{enumerate}
+
+\section{Orquestador}
+El orquestador \texttt{AgentOrchestrator} (266 líneas) gestiona el ciclo de vida de cada invocación de agente:
+
+\begin{lstlisting}[style=ts,caption={Método dispatch del orquestador}]
+class AgentOrchestrator {
+  async dispatch(input: {
+    agent: AgentName
+    task: string
+    context: AgentContext
+    tools?: string[]  // restrict available tools
+  }): Promise<AgentRunResult> {
+    // 1. Register AgentRun in DB
+    const run = await prisma.agentRun.create({
+      data: {
+        agentName: input.agent,
+        taskId: input.task,
+        userId: input.context.userId,
+        status: 'running',
+        startedAt: new Date(),
+      }
+    })
+
+    try {
+      // 2. Get agent definition
+      const agent = this.agents[input.agent]
+      const tools = (input.tools ?? agent.defaultTools)
+        .map(name => this.tools[name])
+        .filter(Boolean)
+
+      // 3. Build system prompt with context
+      const systemPrompt = agent.buildPrompt(input.context)
+
+      // 4. Execute agent loop (ReAct pattern)
+      const result = await this.executeLoop(agent, systemPrompt, input.task, tools)
+
+      // 5. Update AgentRun
+      await prisma.agentRun.update({
+        where: { id: run.id },
+        data: { status: 'completed', result: JSON.stringify(result), endedAt: new Date() }
+      })
+
+      // 6. Emit completion event
+      await events.emit('agent.run.completed', { agentRunId: run.id, ...result })
+
+      return result
+    } catch (error) {
+      await prisma.agentRun.update({
+        where: { id: run.id },
+        data: { status: 'failed', error: error.message, endedAt: new Date() }
+      })
+      throw error
+    }
+  }
+}
+\end{lstlisting}
+
+\section{Capa de herramientas (Tool Layer)}
+Cada agente puede invocar herramientas registradas. La capa de herramientas (413 líneas) aplica RBAC y persistencia:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{3cm}p{4.5cm}p{5.5cm}}
+\toprule
+\textbf{Herramienta} & \textbf{Función} & \textbf{Agentes autorizados} \\
+\midrule
+\texttt{rag.retrieve} & Recupera chunks RAG relevantes & AI Tutor, Learning \\
+\texttt{memory.write} & Persiste un recuerdo en memoria larga & Todos \\
+\texttt{memory.read} & Lee recuerdos por tipo/tag & Todos \\
+\texttt{progress.update} & Actualiza UserProgress (CEFR, XP) & AI Tutor, Learning \\
+\texttt{progress.read} & Lee UserProgress actual & Todos \\
+\texttt{vocabulary.review} & Programa repasos FSRS & Learning \\
+\texttt{errors.cluster} & Agrupa errores recientes por patrón & Learning, Analytics \\
+\texttt{feature\_flags.get} & Lee flags asignados al usuario & Product, Engineering \\
+\texttt{experiments.assign} & Asigna variante de experimento A/B & Product \\
+\bottomrule
+\end{tabular}
+\caption{Registro de herramientas del sistema de agentes}
+\end{table}
+
+Cada invocación de herramienta se persiste en \texttt{AgentToolCall} con argumentos, resultado, duración y éxito, proporcionando trazabilidad completa para auditoría y debugging.
+
+\section{Patrón ReAct}
+Los agentes siguen el patrón \textbf{ReAct} (Reason + Act) iterativamente: en cada ciclo, el agente recibe el contexto actual, decide si necesita invocar una herramienta (Reason), la invoca (Act), recibe el resultado, y repite hasta que decide generar la respuesta final. El ciclo está limitado a 5 iteraciones para evitar loops infinitos y controlar costos.
+
+\section{Memoria dual}
+El sistema de memoria (255 líneas) implementa dos capas complementarias:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Memoria de corto plazo} — en memoria del proceso, almacenada por \texttt{sessionId}. Contiene los últimos 10 turnos de conversación. TTL de 30 minutos. Se descarta al cerrar la sesión.
+\item \textbf{Memoria de largo plazo} — persistida en tabla \texttt{AgentMemory}. Contiene hechos extraídos («el usuario trabaja en fintech», «el usuario prefiere explicaciones concisas», «el usuario tuvo dificultades con past perfect»). Indexada por \texttt{userId + type + tag}.
+\end{itemize}
+
+\chapter{Capa de Inteligencia de Aprendizaje (LIL)}
+
+\section{Propósito de LIL}
+La \textbf{Learning Intelligence Layer (LIL)} es el componente de orquestación pedagógica que se ubica entre la API HTTP y el orquestador de agentes. Su responsabilidad es enriquecer el contexto del agente con información pedagógica relevante antes de la invocación, y post-procesar la respuesta del LLM para extraer correcciones, ejercicios y actualizaciones de progreso.
+
+La LIL encapsula tres responsabilidades:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Compresión de memoria} — antes de invocar el agente, la LIL toma la memoria de corto plazo (10 turnos) y la comprime a un resumen de 3--5 oraciones para incluir en el system prompt, evitando desbordar el contexto del LLM.
+\item \textbf{Recuperación RAG adaptativa} — invoca \texttt{rag.retrieve} con la query del usuario y enriquece el prompt con los chunks recuperados.
+\item \textbf{Post-procesamiento} — tras recibir la respuesta del LLM, la LIL parsea el output buscando bloques estructurados (\texttt{[CORRECTION]}, \texttt{[VOCAB]}, \texttt{[EXERCISE]}) y los persiste en las tablas correspondientes.
+\end{enumerate}
+
+\section{Flujo LIL}
+El flujo LIL para una conversación típica:
+
+\begin{lstlisting}[style=ts,caption={Método principal de LIL}]
+async function processConversationTurn(input: {
+  userId: string
+  sessionId: string
+  userMessage: string
+}): Promise<{ reply: string; corrections: Correction[]; metadata: any }> {
+  // 1. Load and compress short-term memory
+  const shortTerm = await memory.getShortTerm(input.sessionId)
+  const compressed = await compressMemory(shortTerm, { maxTokens: 200 })
+
+  // 2. Adaptive RAG retrieval
+  const userCefr = await getUserCefr(input.userId)
+  const ragChunks = await adaptiveRetrieve(input.userMessage, input.userId, {
+    cefrLevel: userCefr,
+    topK: 5,
+  })
+
+  // 3. Build system prompt
+  const systemPrompt = buildTutorPrompt({
+    cefrLevel: userCefr,
+    memorySummary: compressed,
+    ragContext: ragChunks.map(c => c.payload.content).join('\n---\n'),
+    userPreferences: await getUserPreferences(input.userId),
+  })
+
+  // 4. Invoke AI Tutor agent
+  const result = await orchestrator.dispatch({
+    agent: 'ai-tutor',
+    task: input.userMessage,
+    context: { userId: input.userId, sessionId: input.sessionId, systemPrompt },
+  })
+
+  // 5. Post-process response
+  const parsed = parseStructuredOutput(result.response)
+  await persistCorrections(input.userId, parsed.corrections)
+  await persistVocabulary(input.userId, parsed.vocabulary)
+
+  // 6. Update progress
+  await updateProgress(input.userId, {
+    xpDelta: 10,
+    cefrEvidence: parsed.cefrEvidence,
+  })
+
+  // 7. Persist message
+  await persistMessage({
+    sessionId: input.sessionId,
+    role: 'user',
+    content: input.userMessage,
+  })
+  await persistMessage({
+    sessionId: input.sessionId,
+    role: 'assistant',
+    content: parsed.reply,
+    metadata: { corrections: parsed.corrections, ragChunks: ragChunks.map(c => c.id) },
+  })
+
+  return { reply: parsed.reply, corrections: parsed.corrections, metadata: { ragChunks, agentRunId: result.runId } }
+}
+\end{lstlisting}
+
+\chapter{Autenticación y RBAC}
+
+\section{Stack de autenticación}
+La autenticación en Axiom se construye sobre tres componentes:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Argon2id} para el hash de contraseñas. Argon2id es el ganador de la Password Hashing Competition 2015, resistente a ataques de GPU, side-channel y time-memory tradeoff. Parámetros calibrados: \texttt{memoryCost = 65536} (64 MB), \texttt{timeCost = 3}, \texttt{parallelism = 4}.
+\item \textbf{JWT (JSON Web Tokens)} con algoritmo \texttt{HS256} para tokens de acceso. TTL de 15 minutos para access token, 7 días para refresh token. El \texttt{jti} (JWT ID) se persiste en \texttt{AuthSession} para permitir revocación.
+\item \textbf{RBAC (Role-Based Access Control)} con roles \texttt{user}, \texttt{admin}, \texttt{content\_editor}, \texttt{support} y permisos granulares por recurso.
+\end{enumerate}
+
+\section{Ciclo de vida de autenticación}
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Registro.} El usuario envía \texttt{POST /api/auth} con body \texttt{\{action: register, email, password, name\}}. El servidor valida con Zod, verifica unicidad del email, hashea la contraseña con Argon2id, crea el \texttt{User}, asigna rol \texttt{user}, y retorna access + refresh tokens.
+\item \textbf{Login.} El usuario envía \texttt{POST /api/auth} con body \texttt{\{action: login, email, password\}}. El servidor busca el \texttt{User} por email, verifica la contraseña con \texttt{argon2.verify}, crea \texttt{AuthSession}, y retorna los tokens.
+\item \textbf{Acceso a recursos.} Cada request autenticada incluye \texttt{Authorization: Bearer <access>}. El middleware \texttt{src/middleware.ts} valida el JWT, extrae \texttt{userId} y \texttt{role}, los inyecta como headers \texttt{x-user-id} y \texttt{x-user-role}.
+\item \textbf{Refresh.} Cuando el access token expira, el cliente envía \texttt{POST /api/auth} con body \texttt{\{action: refresh, refreshToken\}}. El servidor verifica el refresh hash en \texttt{AuthSession}, genera nuevos tokens, y revoca la sesión anterior.
+\item \textbf{Logout.} El cliente envía \texttt{POST /api/auth} con body \texttt{\{action: logout\}}. El servidor marca \texttt{AuthSession.revokedAt} con el timestamp actual.
+\item \textbf{Recuperación de contraseña.} El usuario solicita reset; se genera un token aleatorio de 32 bytes, se hashea, se persiste en \texttt{PasswordResetToken} con TTL 1 hora, y se envía por email (en MVP, se loggea).
+\end{enumerate}
+
+\section{RBAC — Roles y permisos}
+La tabla \texttt{Role} define 4 roles estáticos con conjuntos de permisos:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2.5cm}p{6cm}p{4.5cm}}
+\toprule
+\textbf{Rol} & \textbf{Permisos} & \textbf{Asignación} \\
+\midrule
+\texttt{user} & \texttt{module.*}, \texttt{profile.read|update}, \texttt{document.*}, \texttt{billing.read|manage} & Por defecto a todo usuario registrado \\
+\texttt{admin} & Todos los anteriores + \texttt{admin.*}, \texttt{user.read|update|delete} & Manual, para equipo interno \\
+\texttt{content\_editor} & \texttt{curriculum.*}, \texttt{vocabulary.*}, \texttt{grammar.*} & Para equipo pedagógico \\
+\texttt{support} & \texttt{user.read}, \texttt{session.read}, \texttt{audit.read} & Para equipo de soporte \\
+\bottomrule
+\end{tabular}
+\caption{Roles y permisos RBAC}
+\end{table}
+
+La verificación de permisos se realiza en la capa API mediante el helper \texttt{requirePermission(req, "module.create")}:
+
+\begin{lstlisting}[style=ts,caption={Helper requirePermission}]
+function requirePermission(req: NextRequest, permission: string) {
+  const userId = req.headers.get('x-user-id')
+  const userRole = req.headers.get('x-user-role') as RoleName
+
+  if (!userId) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const hasPermission = RBAC.hasPermission(userRole, permission)
+  if (!hasPermission) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  return null  // pass through
+}
+\end{lstlisting}
+
+\chapter{Observabilidad y Auditoría}
+
+\section{Stack de observabilidad}
+La observabilidad de Axiom se construye sobre cinco componentes complementarios, cada uno cubriendo una dimensión distinta:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Logger estructurado JSON} — implementación propia en \texttt{src/lib/observability.ts} (245 líneas). Cada log entry incluye timestamp ISO 8601, level (debug/info/warn/error), request ID, user ID, action, duration, y payload estructurado. Los logs se emiten a stdout para captura por Vercel/Datadog.
+\item \textbf{OpenTelemetry tracer} — para tracing distribuido. Cada request HTTP inicia un span, y cada llamada a herramienta de agente crea un span hijo. Los traces se exportan a Grafana Cloud (Free tier en MVP).
+\item \textbf{AuditLog} — persistencia en base de datos de acciones sensibles del usuario: login, cambios de plan, cargas de documentos, invocaciones de agentes. Permite responder «¿quién hizo qué y cuándo?» con granularidad de acción.
+\item \textbf{SystemEvent} — bus de eventos asíncrono con persistencia. 15 tipos de eventos definidos: \texttt{user.registered}, \texttt{user.login}, \texttt{session.started}, \texttt{session.completed}, \texttt{agent.run.started}, \texttt{agent.run.completed}, \texttt{payment.created}, \texttt{payment.completed}, \texttt{payment.failed}, \texttt{document.uploaded}, \texttt{document.processed}, \texttt{document.failed}, \texttt{vocabulary.added}, \texttt{vocabulary.reviewed}, \texttt{flag.toggled}.
+\item \textbf{MetricPoint} — series temporales de métricas técnicas (latencia P50/P95/P99, throughput, error rate, usage counters). Persistidas en \texttt{MetricPoint} con \texttt{userId}, \texttt{metric}, \texttt{value}, \texttt{timestamp}.
+\end{enumerate}
+
+\section{Logger estructurado}
+El logger implementa niveles, contexto enriquecido y sampling:
+
+\begin{lstlisting}[style=ts,caption={Logger estructurado}]
+class StructuredLogger {
+  constructor(private context: LogContext = {}) {}
+
+  with(context: Partial<LogContext>): StructuredLogger {
+    return new StructuredLogger({ ...this.context, ...context })
+  }
+
+  info(message: string, payload?: Record<string, unknown>) {
+    this.emit('info', message, payload)
+  }
+
+  error(message: string, error?: Error | unknown, payload?: Record<string, unknown>) {
+    this.emit('error', message, {
+      ...payload,
+      error: error instanceof Error ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      } : String(error)
+    })
+  }
+
+  private emit(level: LogLevel, message: string, payload?: Record<string, unknown>) {
+    const entry: LogEntry = {
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      requestId: this.context.requestId,
+      userId: this.context.userId,
+      sessionId: this.context.sessionId,
+      agentName: this.context.agentName,
+      payload,
+    }
+    // Sampling: 1 in 100 info logs in production
+    if (level === 'info' && process.env.NODE_ENV === 'production' && Math.random() > 0.01) {
+      return
+    }
+    process.stdout.write(JSON.stringify(entry) + '\n')
+  }
+}
+\end{lstlisting}
+
+\section{Trazabilidad end-to-end}
+Cada request HTTP recibe un \texttt{X-Request-ID} (UUID v4) que se propaga a través de:
+
+\begin{itemize}[leftmargin=1.4em]
+\item Logs del handler
+\item Span de OpenTelemetry
+\item Registro en \texttt{AuditLog.requestId}
+\item Invocaciones de agentes (campo \texttt{AgentRun.metadata.requestId})
+\item Invocaciones de herramientas (\texttt{AgentToolCall.metadata.requestId})
+\item Llamadas al LLM (\texttt{llm.complete} logs el requestId)
+\item Eventos del sistema (\texttt{SystemEvent.payload.requestId})
+\end{itemize}
+
+Esto permite reconstruir el flujo completo de una request desde el click del usuario hasta la respuesta final, pasando por cada agente, cada tool call, cada llamada al LLM, y cada persistencia en DB.
+
+\chapter{Sistema de Facturación}
+
+\section{Integración con Mercado Pago}
+Axiom utiliza \textbf{Mercado Pago} como procesador de pagos principal para el mercado mexicano (80\% del volumen esperado), con Stripe planificado para Fase 2 como procesador secundario para usuarios internacionales (20\% del volumen). La elección de Mercado Pago se justifica por:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Dominio del mercado mexicano} — 80\% de cuota en pagos digitales B2C.
+\item \textbf{Múltiples métodos de pago} — tarjetas de crédito/débito, OXXO (efectivo), transferencias SPEI, wallet de Mercado Pago.
+\item \textbf{Sin requisitos de entidad legal estadounidense} — a diferencia de Stripe, no requiere constituir una LLC en EE.UU.
+\item \textbf{Comisión competitiva} — 2.49\% + IVA por transacción, similar a Stripe (2.9\% + \$0.30).
+\item \textbf{SDK maduro} — SDK oficial para Node.js con webhooks, suscripciones, y manejo de errores.
+\end{itemize}
+
+\section{Planes y precios}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2cm}p{2.2cm}p{3cm}p{4cm}p{2cm}}
+\toprule
+\textbf{Plan} & \textbf{Precio MXN/mes} & \textbf{Usuarios} & \textbf{Features clave} & \textbf{Mercado} \\
+\midrule
+Básico & \$199 & 1 & RAG 5 docs, 30 msg/día & Individual entry \\
+Pro & \$399 & 1 & RAG ilimitado, conversación sin límite & Individual \\
+Equipo & \$999 & hasta 15 & Panel admin, métricas agregadas & PyME \\
+Enterprise & \$2,999+ & custom & SSO, SLA, integraciones & Corporativo \\
+\bottomrule
+\end{tabular}
+\caption{Planes de suscripción Axiom}
+\end{table}
+
+\section{Modelo de datos de facturación}
+El modelo de datos de facturación comprende tres entidades:
+
+\begin{lstlisting}[style=sql,caption={Modelos Plan, Subscription, Payment}]
+model Plan {
+  id           String   @id @default(cuid())
+  code         String   @unique  // "basic", "pro", "team", "enterprise"
+  name         String
+  description  String?
+  priceMx      Int      // price in MXN cents (e.g. 19900 = \$199.00)
+  interval     String   // "month" | "year"
+  features     String   // JSON array of feature strings
+  limits       String?  // JSON object with quota limits
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  planId          String
+  plan            Plan     @relation(fields: [planId], references: [id])
+  status          String   // "trialing" | "active" | "past_due" | "canceled"
+  mpPreapprovalId String?  // Mercado Pago preapproval ID
+  currentPeriodEnd DateTime?
+  canceledAt      DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  payments        Payment[]
+
+  @@index([userId, status])
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id])
+  subscriptionId  String?
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
+  mpPaymentId     String?  // Mercado Pago payment ID
+  amountMx        Int      // amount in MXN cents
+  currency        String   @default("MXN")
+  status          String   // "pending" | "approved" | "rejected" | "refunded"
+  paymentMethod   String?  // "credit_card" | "debit_card" | "oxxo" | "spei"
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([status])
+}
+\end{lstlisting}
+
+\section{Ciclo de vida de una suscripción}
+El ciclo de vida completo de una suscripción:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Selección de plan.} El usuario selecciona un plan en la UI y hace clic en «Suscribirse».
+\item \textbf{Creación de preferencia.} El backend crea una preferencia de pago en Mercado Pago vía \texttt{POST /checkout/preferences} con los datos del plan, el usuario, y las URLs de callback.
+\item \textbf{Redirección a Mercado Pago.} El usuario es redirigido a la página de pago de Mercado Pago, donde ingresa su método de pago.
+\item \textbf{Webhook de aprobación.} Mercado Pago envía un webhook a \texttt{/api/billing/webhook} con el evento \texttt{payment.approved}. El backend verifica la firma, persiste el \texttt{Payment}, actualiza la \texttt{Subscription} a \texttt{active}, y emite el evento \texttt{payment.completed}.
+\item \textbf{Renovación mensual.} Mercado Pago procesa la renovación automáticamente para suscripciones con tarjeta guardada. El webhook \texttt{payment.approved} se recibe cada mes.
+\item \textbf{Cancelación.} El usuario puede cancelar desde la UI. El backend llama a \texttt{MP API: cancel preapproval}, actualiza \texttt{Subscription.canceledAt}, y mantiene el acceso hasta \texttt{currentPeriodEnd}.
+\item \textbf{Pago fallido.} Si un pago recurrente falla, Mercado Pago envía \texttt{payment.rejected}. El backend marca \texttt{Subscription.status = "past\_due"}, notifica al usuario, y concede un período de gracia de 7 días antes de revocar el acceso.
+\end{enumerate}
+
+\section{Plan-gating}
+La verificación de límites del plan se implementa en el middleware de cada endpoint crítico:
+
+\begin{lstlisting}[style=ts,caption={Plan-gating para módulos}]
+async function enforcePlanLimits(userId: string, action: string) {
+  const sub = await prisma.subscription.findFirst({
+    where: { userId, status: { in: ['trialing', 'active'] } },
+    include: { plan: true }
+  })
+
+  if (!sub) {
+    throw new HttpError(403, 'No active subscription')
+  }
+
+  const limits = JSON.parse(sub.plan.limits ?? '{}')
+
+  switch (action) {
+    case 'conversation.message':
+      const todayCount = await prisma.message.count({
+        where: {
+          session: { userId },
+          role: 'user',
+          createdAt: { gte: startOfDay(new Date()) }
+        }
+      })
+      if (limits.dailyMessages && todayCount >= limits.dailyMessages) {
+        throw new HttpError(429, 'Daily message limit reached. Upgrade to Pro for unlimited.')
+      }
+      break
+
+    case 'document.upload':
+      const docCount = await prisma.userDocument.count({
+        where: { userId }
+      })
+      if (limits.maxDocuments && docCount >= limits.maxDocuments) {
+        throw new HttpError(403, 'Document limit reached. Upgrade to Pro for unlimited RAG.')
+      }
+      break
+  }
+}
+\end{lstlisting}
+
+\chapter{APIs REST}
+
+\section{Visión general de las rutas API}
+Axiom expone \textbf{22 rutas API REST} organizadas en 8 grupos funcionales. Todas las rutas siguen convenciones uniformes: validación Zod de entrada, autenticación JWT requerida (excepto \texttt{/api/auth}), rate limiting, logging estructurado con \texttt{X-Request-ID}, y respuestas JSON estandarizadas con códigos HTTP apropiados.
+
+\section{Catálogo de endpoints}
+
+\begin{longtable}{p{4cm}p{2cm}p{2.5cm}p{5cm}}
+\toprule
+\textbf{Ruta} & \textbf{Método} & \textbf{Auth} & \textbf{Propósito} \\
+\midrule
+\endhead
+\texttt{/api/auth} & POST & None & Registro, login, refresh, logout, password reset \\
+\texttt{/api/profile} & GET, PATCH & user & Leer/actualizar perfil del usuario \\
+\texttt{/api/modules} & POST, GET, PATCH & user & Iniciar/consultar/finalizar sesión de aprendizaje \\
+\texttt{/api/voice} & POST & user & Análisis de pronunciación (Levenshtein + LLM feedback) \\
+\texttt{/api/typing} & POST & user & Evaluación de mecanografía (algoritmo puro) \\
+\texttt{/api/translation} & POST & user & Evaluación de traducción (BLEU + Levenshtein) \\
+\texttt{/api/reading} & GET & user & Obtener textos de lectura por CEFR \\
+\texttt{/api/tts} & POST & user & Text-to-speech con Kokoro TTS \\
+\texttt{/api/curriculum} & GET & user & Obtener currículo adaptado al nivel \\
+\texttt{/api/learning-mode} & GET, PATCH & user & Modo de aprendizaje (conversación, etc.) \\
+\texttt{/api/progress} & GET & user & Progreso del usuario (CEFR, XP, métricas) \\
+\texttt{/api/knowledge/vocab} & GET, POST & user & Vocabulario del usuario, agregar nueva palabra \\
+\texttt{/api/documents} & POST, GET, DELETE & user & Cargar, listar, eliminar documentos para RAG \\
+\texttt{/api/billing} & GET, POST & user & Listar planes, crear suscripción, ver suscripción actual \\
+\texttt{/api/billing/webhook} & POST & MP & Webhook de Mercado Pago (eventos de pago) \\
+\texttt{/api/agents} & GET & user & Listar agentes y sus runs recientes \\
+\texttt{/api/admin/users} & GET & admin & Listar todos los usuarios (con paginación) \\
+\texttt{/api/admin/flags} & GET, PATCH & admin & Feature flags globales \\
+\texttt{/api/admin/errors} & GET & admin & Errores recientes del sistema \\
+\texttt{/api/admin/audit} & GET & admin & Logs de auditoría con filtros \\
+\texttt{/api/admin/metrics} & GET & admin & Métricas agregadas del sistema \\
+\bottomrule
+\caption{Catálogo de endpoints API REST de Axiom}
+\end{longtable}
+
+\section{Patrones de implementación}
+Cada endpoint sigue un patrón de implementación uniforme:
+
+\begin{lstlisting}[style=ts,caption={Ejemplo: endpoint POST /api/typing}]
+import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
+import { requireAuth, requirePermission } from '@/lib/auth'
+import { evaluateTyping } from '@/lib/algorithms'
+import { logger } from '@/lib/observability'
+
+const TypingRequestSchema = z.object({
+  targetText: z.string().min(10).max(5000),
+  keystrokes: z.array(z.object({
+    char: z.string(),
+    expected: z.string(),
+    position: z.number().int().nonnegative(),
+    timestamp: z.number().nonnegative(),
+    correct: z.boolean(),
+    corrected: z.boolean(),
+  })).min(1),
+  durationSec: z.number().positive(),
+})
+
+export async function POST(req: NextRequest) {
+  const authError = requireAuth(req)
+  if (authError) return authError
+
+  const userId = req.headers.get('x-user-id')!
+  const log = logger.with({ userId, action: 'typing.evaluate' })
+
+  try {
+    const body = await req.json()
+    const parsed = TypingRequestSchema.safeParse(body)
+    if (!parsed.success) {
+      log.warn('validation_failed', { errors: parsed.error.flatten() })
+      return NextResponse.json({ error: 'Invalid input', details: parsed.error.flatten() }, { status: 400 })
+    }
+
+    const result = evaluateTyping(parsed.data.targetText, parsed.data.keystrokes, parsed.data.durationSec)
+    log.info('evaluated', { wpm: result.wpm, accuracy: result.accuracy, cefr: result.cefrLevel })
+
+    // Persist result
+    await prisma.typingResult.create({
+      data: { userId, ...result, targetText: parsed.data.targetText }
+    })
+
+    return NextResponse.json({ result }, { status: 201 })
+  } catch (error) {
+    log.error('evaluation_failed', error)
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
+  }
+}
+\end{lstlisting}
+
+
+\chapter{Frontend y UI/UX}
+
+\section{Stack de frontend}
+El frontend de Axiom se construye sobre \textbf{Next.js 16 con App Router}, aprovechando las siguientes capacidades modernas:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{React 19.2} — Server Components, Server Actions, \texttt{useOptimistic}, \texttt{useFormState}, \texttt{use}.
+\item \textbf{Turbopack} — bundler Rust-based que reemplaza a Webpack, 10× más rápido en builds incrementales.
+\item \textbf{Tailwind CSS 4} — configuración CSS-first, sin \texttt{tailwind.config.js}, variables CSS nativas.
+\item \textbf{shadcn/ui v4} — componentes basados en Radix UI, copiados al proyecto (no dependencia npm), totalmente customizable.
+\item \textbf{Material Symbols} — iconografía consistente (2200+ iconos).
+\item \textbf{Lexend font} — familia tipográfica diseñada para legibilidad en pantallas, pesos 300-800.
+\end{itemize}
+
+\section{Sistema de diseño}
+El sistema de diseño se inspira en \textbf{LinguaIA Project} (https://github.com/Deivid9920/LinguaIA-Project.git) y se materializa en \texttt{src/app/globals.css} mediante variables CSS y clases utilitarias:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2.5cm}p{2.5cm}p{6.5cm}}
+\toprule
+\textbf{Token} & \textbf{Valor} & \textbf{Uso} \\
+\midrule
+\texttt{--color-navy} & \#0B1F3A & Color principal, fondos oscuros, sidebar \\
+\texttt{--color-teal} & \#0ECFB1 & Color de acento, CTAs, estados activos \\
+\texttt{--color-amber} & \#F5A623 & Highlight, badges premium, alertas \\
+\texttt{--color-ice} & \#B5D4F4 & Fondos suaves, dividers \\
+\texttt{--color-paper} & \#F4F7FF & Fondo de página \\
+\bottomrule
+\end{tabular}
+\caption{Tokens de color del sistema de diseño Axiom}
+\end{table}
+
+\section{Componentes CSS reutilizables}
+El sistema define las siguientes clases CSS de componentes:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \texttt{.btn-tactile} — botón con gradiente teal y sombra «depth» que simula tridimensionalidad.
+\item \texttt{.hero-card} — tarjeta oscura con gradientes radiales para el dashboard principal.
+\item \texttt{.module-card-axiom} — tarjeta blanca con borde 1.5px, hover lift + borde teal.
+\item \texttt{.chat-bubble-user} — burbuja de chat usuario, fondo navy, esquina afilada.
+\item \texttt{.chat-bubble-ai} — burbuja de chat IA, fondo blanco con borde, esquina afilada.
+\item \texttt{.correction-card-axiom} — tarjeta de corrección, fondo teal suave, borde teal.
+\item \texttt{.tab-pill} — pestaña tipo píldora con estado activo teal.
+\item \texttt{.sidebar-axiom} — sidebar navy colapsable (72px → 240px en hover).
+\item \texttt{.stat-card-axiom} — tarjeta de estadística con icono y número grande.
+\item \texttt{.plan-card-axiom} — tarjeta de plan con borde destacado para plan popular.
+\item \texttt{.pill-badge} — badge con variantes de color (teal, amber, navy, red).
+\item \texttt{.xp-track} — barra de progreso XP con animación de relleno.
+\item \texttt{.spinner-axiom} — spinner teal con animación rotacional.
+\item \texttt{.live-dot} — punto verde pulsante para indicar «en vivo».
+\item \texttt{.recording-blink} — punto rojo parpadeante para indicar grabación.
+\end{itemize}
+
+\section{Estructura de la aplicación}
+La aplicación se organiza en una pantalla de autenticación y un shell principal con 7 pestañas:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{AuthScreen} — pantalla split-screen: izquierda hero navy con brand, value props y stats; derecha form card con tabs (login/registro), botón táctil, badges de tecnología.
+\item \textbf{DashboardTab} — hero card con saludo, nivel CEFR y barra XP; grid de estadísticas (sesiones, mensajes, XP, racha); 3 tarjetas de módulo (conversación/escritura/voz); card de analíticas con score de engagement; card de plan actual.
+\item \textbf{ConversationTab} — top bar con avatar del tutor IA, estado «en vivo», selector de modo, timer, botón Finalizar; área de chat con estado vacío y MessageBubbles (usuario=navy, IA=blanco con avatar); área de input con textarea y botón táctil de envío.
+\item \textbf{TextTab} — pestañas píldora (traducción/escritura/profesional); layout de 2 columnas (input/output); tarjetas de corrección.
+\item \textbf{VoiceTab} — card de texto de lectura; controles de grabación; grid de estadísticas de pronunciación; card de feedback.
+\item \textbf{DocumentsTab} — botón de carga; lista de documentos con pills de estado.
+\item \textbf{BillingTab} — 4 tarjetas de plan con Pro destacado como «Popular»; estado de suscripción actual.
+\item \textbf{AdminTab} — 6 sub-pestañas (overview/users/flags/errors/audit/metrics); tarjetas de estadísticas; tablas; switches.
+\end{enumerate}
+
+\section{Iconografía}
+Todos los iconos usan \textbf{Material Symbols Outlined} cargados vía Google Fonts. El wrapper \texttt{src/components/icons.tsx} expone el componente \texttt{MS} (Material Symbol):
+
+\begin{lstlisting}[style=ts,caption={Wrapper de iconos Material Symbols}]
+export function MS({ name, size = 24, className = '', weight = 400, fill = false }: {
+  name: string
+  size?: number
+  className?: string
+  weight?: 100 | 200 | 300 | 400 | 500 | 600 | 700
+  fill?: boolean
+}) {
+  return (
+    <span
+      className={`material-symbols-outlined ${className}`}
+      style={{
+        fontSize: size,
+        fontVariationSettings: `'FILL' ${fill ? 1 : 0}, 'wght' ${weight}, 'GRAD' 0, 'opsz' ${size}`,
+      }}
+    >
+      {name}
+    </span>
+  )
+}
+\end{lstlisting}
+
+\chapter{Testing y Calidad}
+
+\section{Pirámide de testing}
+Axiom adopta la pirámide de testing clásica con tres niveles:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2.5cm}p{3cm}p{3.5cm}p{3cm}}
+\toprule
+\textbf{Nivel} & \textbf{Herramienta} & \textbf{Cobertura} & \textbf{Frecuencia de ejecución} \\
+\midrule
+Unit tests & Vitest & 72 tests en 8 archivos & Cada commit (CI) \\
+E2E tests & Playwright & 4 specs en \texttt{learning-flow.spec.ts} & Cada PR (CI) \\
+Load tests & k6 & 3 escenarios (baseline/stress/spike) & Manual, pre-release \\
+\bottomrule
+\end{tabular}
+\caption{Pirámide de testing Axiom}
+\end{table}
+
+\section{Tests unitarios}
+Los 72 tests unitarios se distribuyen en 8 archivos cubriendo los módulos de dominio:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \texttt{irt.test.ts} — 9 tests: estimación $\theta$ bayesiana, mapeo CEFR, convergencia con 15-20 ítems.
+\item \texttt{fsrs.test.ts} — 8 tests: actualización de estabilidad/dificultad, cálculo de próximo intervalo.
+\item \texttt{rag.test.ts} — 11 tests: upsert/search/delete, filtrado por metadata, recuperación adaptativa.
+\item \texttt{memory.test.ts} — 7 tests: escritura/lectura de memoria, TTL de corto plazo, tags.
+\item \texttt{rbac.test.ts} — 10 tests: verificación de permisos por rol, herencia, denegación.
+\item \texttt{events.test.ts} — 9 tests: emisión/consumo de eventos, persistencia, manejo de errores.
+\item \texttt{billing.test.ts} — 12 tests: creación de suscripción, webhook handling, plan-gating, límites.
+\item \texttt{llm.test.ts} — 6 tests: adaptador OpenRouter, manejo de errores, streaming.
+\end{itemize}
+
+\section{Test unitario de ejemplo}
+
+\begin{lstlisting}[style=ts,caption={Test unitario para IRT 3PL}]
+import { describe, it, expect } from 'vitest'
+import { estimateTheta, irt3PL } from '@/lib/pedagogy'
+
+describe('IRT 3PL', () => {
+  it('should return theta=0 for all-correct mid-difficulty items', () => {
+    const items = Array.from({ length: 20 }, (_, i) => ({
+      a: 1.2,
+      b: 0,
+      c: 0.25,
+    }))
+    const responses = items.map(() => 1) // all correct
+    const { theta, se } = estimateTheta(items, responses)
+    expect(theta).toBeGreaterThan(0.5)  // high ability
+    expect(se).toBeLessThan(0.3)        // good precision
+  })
+
+  it('should converge with 15 adaptive items', () => {
+    const items = generateAdaptiveItems({ count: 15, targetTheta: -1.0 })
+    const responses = items.map(item => simulateResponse(item, -1.0))
+    const { theta, se } = estimateTheta(items, responses)
+    expect(Math.abs(theta - (-1.0))).toBeLessThan(0.5)
+    expect(se).toBeLessThan(0.3)
+  })
+
+  it('should map theta to CEFR levels correctly', () => {
+    expect(thetaToCefr(-3.0)).toBe('A1')
+    expect(thetaToCefr(-2.0)).toBe('A2')
+    expect(thetaToCefr(-1.0)).toBe('B1')
+    expect(thetaToCefr(0)).toBe('B2')
+    expect(thetaToCefr(1.0)).toBe('C1')
+    expect(thetaToCefr(2.0)).toBe('C2')
+  })
+})
+\end{lstlisting}
+
+\section{Tests E2E con Playwright}
+Las 4 especificaciones E2E cubren los flujos críticos de usuario:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \texttt{auth-flow.spec.ts} — registro, login, logout, refresh token.
+\item \texttt{conversation-flow.spec.ts} — iniciar sesión de conversación, enviar mensaje, recibir respuesta del LLM.
+\item \texttt{billing-flow.spec.ts} — seleccionar plan, iniciar checkout, recibir webhook simulado, verificar acceso.
+\item \texttt{admin-flow.spec.ts} — login como admin, listar usuarios, cambiar feature flag, ver logs.
+\end{enumerate}
+
+\section{Tests de carga con k6}
+El script \texttt{tests/load/api-load.js} define 3 escenarios:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Baseline} — 50 VUs (virtual users) durante 5 minutos, target throughput 100 RPS.
+\item \textbf{Stress} — rampa de 50 a 500 VUs en 10 minutos, identifica el punto de quiebre.
+\item \textbf{Spike} — 50 VUs baseline, pico instantáneo a 1000 VUs por 30s, regreso a baseline.
+\end{itemize}
+
+\section{Cobertura de código}
+La configuración de Vitest incluye \texttt{coverage.enabled = true} con \texttt{provider = 'v8'} y thresholds: líneas 70\%, funciones 70\%, ramas 60\%, statements 70\%. La cobertura actual del MVP es: líneas 78\%, funciones 75\%, ramas 65\%, statements 78\%.
+
+\chapter{Despliegue y CI/CD}
+
+\section{Pipeline de CI/CD}
+El pipeline de CI/CD se implementa en \textbf{GitHub Actions} (\texttt{.github/workflows/ci.yml}) y se ejecuta en cada push a \texttt{main} y en cada Pull Request:
+
+\begin{lstlisting}[style=bash,caption={Pipeline CI/CD en GitHub Actions}]
+name: CI
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'bun' }
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'bun' }
+      - run: bun install --frozen-lockfile
+      - run: bun run test:unit -- --coverage
+      - uses: codecov/codecov-action@v4
+
+  e2e-tests:
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'bun' }
+      - run: bun install --frozen-lockfile
+      - run: bun run playwright install --with-deps
+      - run: bun run test:e2e
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [unit-tests, e2e-tests]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '22', cache: 'bun' }
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - uses: actions/upload-artifact@v4
+        with: { name: build-output, path: .next/ }
+\end{lstlisting}
+
+\section{Estrategia de despliegue}
+El despliegue a producción sigue una estrategia \textbf{GitOps con preview environments}:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Push a \texttt{develop}} — Vercel genera automáticamente un preview deployment con URL única (e.g. \texttt{axiom-pr-123.vercel.app}).
+\item \textbf{PR review} — el equipo revisa el preview deployment con datos reales (sandbox).
+\item \textbf{Merge a \texttt{main}} — Vercel despliega a producción automáticamente. Estrategia rolling: 0\% → 25\% → 50\% → 100\% en 5 minutos.
+\item \textbf{Smoke tests post-deploy} — script automático verifica 5 endpoints críticos tras el despliegue.
+\item \textbf{Rollback} — si los smoke tests fallan, Vercel revierte automáticamente al deployment anterior.
+\end{enumerate}
+
+\section{Variables de entorno}
+Las variables de entorno requeridas en producción:
+
+\begin{lstlisting}[style=bash,caption={Variables de entorno (template)}]
+# Database
+DATABASE_URL="postgresql://user:pass@host:5432/axiom"
+
+# Auth
+JWT_SECRET="<32-byte-random-hex>"
+ARGON2_MEMORY_COST=65536
+ARGON2_TIME_COST=3
+ARGON2_PARALLELISM=4
+
+# LLM
+OPENROUTER_API_KEY="sk-or-..."
+DEFAULT_MODEL="deepseek/deepseek-chat-v4-flash"
+FALLBACK_MODEL="openai/gpt-5.4-mini"
+
+# Mercado Pago
+MP_ACCESS_TOKEN="APP_USR-..."
+MP_WEBHOOK_SECRET="..."
+MP_PUBLIC_KEY="APP_USR-..."
+
+# Cloudflare R2
+R2_ACCOUNT_ID="..."
+R2_ACCESS_KEY_ID="..."
+R2_SECRET_ACCESS_KEY="..."
+R2_BUCKET="axiom-documents"
+
+# Observability
+SENTRY_DSN="https://...@sentry.io/..."
+POSTHOG_KEY="phc_..."
+LANGFUSE_PUBLIC_KEY="pk-lf-..."
+LANGFUSE_SECRET_KEY="sk-lf-..."
+
+# App
+NEXT_PUBLIC_APP_URL="https://axiom.mx"
+NODE_ENV="production"
+\end{lstlisting}
+
+\chapter{Modelo Financiero}
+
+\section{Supuestos del modelo}
+El modelo financiero se construye sobre 5 escenarios con supuestos calibrados:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2.8cm}p{1.8cm}p{1.8cm}p{1.8cm}p{1.8cm}p{1.8cm}}
+\toprule
+\textbf{Parámetro} & \textbf{Cons.} & \textbf{Cons-alt} & \textbf{Base} & \textbf{Opt.} & \textbf{Muy-Opt.} \\
+\midrule
+K (cap market) & 4,000 & 6,000 & 9,000 & 13,000 & 18,000 \\
+r (crec. mensual) & 12\% & 13\% & 15\% & 17\% & 20\% \\
+$t_0$ (mes despegue) & 10 & 9 & 8 & 7 & 6 \\
+Churn mensual & 25\% & 20\% & 8\% & 5\% & 3\% \\
+CAC (MXN) & \$412 & \$196 & \$140 & \$72 & \$33 \\
+\bottomrule
+\end{tabular}
+\caption{Escenarios del modelo financiero}
+\end{table}
+
+\textbf{Supuestos comunes a todos los escenarios}: TRIAL\_TO\_PAY = 5\%, ARPU blend = \$279 MXN, ARPU Fase 1 = \$259 MXN, OpEx Fase 1 \$2,200 MXN/mes, OpEx Fase 2 \$15,725 MXN/mes, OpEx Fase 3 \$49,875 MXN/mes (solo si MRR > \$50,000), margen bruto 91\%, horizonte 36 meses, USD/MXN 17.20.
+
+\section{Resultados clave (escenario Base)}
+En el escenario Base:
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Usuarios pagos M12}: 125
+\item \textbf{MRR M12}: \$34,869 MXN
+\item \textbf{LTV}: \$3,487.50 MXN
+\item \textbf{LTV/CAC}: 24.9×
+\item \textbf{CAC payback}: 0.5 meses
+\item \textbf{Break-even Fase 2}: 57 usuarios en M9
+\item \textbf{NPV determinístico 36m}: \$17,977 USD
+\end{itemize}
+
+\section{Simulación Monte Carlo}
+Con 10,000 iteraciones Monte Carlo (RNG seed 20260617 para reproducibilidad):
+
+\begin{table}[H]
+\centering
+\begin{tabular}{lcc}
+\toprule
+\textbf{Métrica} & \textbf{P50} & \textbf{IC 80\% (P10--P90)} \\
+\midrule
+NPV 36m (USD) & \$16,578 & \$4,421 -- \$25,541 \\
+MRR M12 (MXN) & \$30,394 & \$22,107 -- \$41,580 \\
+MRR M24 (MXN) & \$118,422 & \$68,910 -- \$187,544 \\
+Usuarios M12 & 113 & 87 -- 142 \\
+\bottomrule
+\end{tabular}
+\caption{Resultados Monte Carlo (escenario Base)}
+\end{table}
+
+\section{Eventos probabilísticos}
+
+\begin{itemize}[leftmargin=1.4em]
+\item $P(\text{BE Fase 1 antes de M6}) = 94\%$
+\item $P(\text{BE Fase 2 antes de M12}) = 72\%$
+\item $P(\text{LTV/CAC} > 3:1) = 82\%$
+\item $P(\text{MRR M24} > \$100K) = 71\%$
+\end{itemize}
+
+\section{Capitalización}
+El plan de financiamiento contempla 3 tranches:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{2cm}p{2.5cm}p{2.5cm}p{2.5cm}p{2.5cm}}
+\toprule
+\textbf{Tranche} & \textbf{Monto USD} & \textbf{Pre-money USD} & \textbf{Equity} & \textbf{Hitos} \\
+\midrule
+T1 Bootstrap & \$5K & --- & 0\% & MVP + 5 usuarios \\
+T2 Angel/Grant & \$100K & \$1.9M & 5.00\% & MVP + 50 usuarios beta \\
+T3 Pre-Seed & \$400K & \$4.6M & 8.00\% & 100 usuarios pagos + PMF \\
+\midrule
+ESOP & --- & --- & 10\% & Pool para equipo futuro \\
+Founder & --- & --- & 77\% & Post-T3 \\
+\bottomrule
+\end{tabular}
+\caption{Plan de capitalización}
+\end{table}
+
+\textbf{Verificación de cierre}: 5\% + 8\% + 10\% + 77\% = 100\% \checkmark
+
+Post-money post-T3: \$5,000,000 USD. Total raised: \$505,000 USD. Retorno proyectado T3 (36m, Base): $5\times$ → \$2.5M USD sobre \$400K invertidos.
+
+\chapter{Análisis de Riesgos}
+
+\section{Riesgos críticos (rojo)}
+
+\begin{tcolorbox}[warnbox,title=R2 — Churn por contenido RAG insuficiente]
+\textbf{Probabilidad}: Alta · \textbf{Impacto}: Alto
+
+Si los usuarios no cargan documentos suficientes o los documentos cargados no generan valor pedagógico diferenciado, el foso competitivo principal se erosiona y el churn aumenta.
+
+\textbf{Mitigación}: (1) Onboarding guiado con documentos demo pre-cargados por dominio profesional; (2) Librería de documentos públicos profesionales (BBC, Cambridge) como fallback cuando el usuario no tiene suficientes propios; (3) Métrica activa «RAG coverage score» que mide cuántas respuestas del tutor citan chunks RAG; alerta si < 30\%.
+\end{tcolorbox}
+
+\begin{tcolorbox}[warnbox,title=R5 — Validación débil]
+\textbf{Probabilidad}: Media · \textbf{Impacto}: Alto
+
+La beta actual tiene solo 25 usuarios y no existe validación independiente. Las métricas de NPS (62) y D7 retention (88\%) tienen IC 95\% muy amplios.
+
+\textbf{Mitigación}: (1) Programa de validación con 50 usuarios adicionales en Fase 1 tardía; (2) Estudio académico independiente con universidad mexicana (Tec de Monterrey o UNAM); (3) Publicación de metodología y datos en repo abierto para escrutinio.
+\end{tcolorbox}
+
+\begin{tcolorbox}[warnbox,title=R7 — Competidor genérico de bajo costo]
+\textbf{Probabilidad}: Media · \textbf{Impacto}: Alto
+
+ChatGPT, Gemini, Claude podrían añadir un modo «aprendizaje de idiomas» que compita directamente, aprovechando su distribución masiva.
+
+\textbf{Mitigación}: (1) Acelerar el flywheel del foso RAG — cada usuario que carga documentos incrementa switching costs; (2) Integración profunda con Mercado Pago y contexto mexicano que es difícil de replicar para competidores globales; (3) Especialización por nichos profesionales (software, finanzas, manufactura) que competidores generales no cubren.
+\end{tcolorbox}
+
+\section{Riesgos significativos (amarillo)}
+
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{R1 — Cambios de precio en DeepSeek API}. Mitigación: OpenRouter + LiteLLM con failover a GPT-5.4/Gemini 2.5 Pro. Buffer de 30\% en el costo LLM del modelo financiero.
+\item \textbf{R8 — Burnout del founder}. Fase 1 es solo founder. Mitigación: contratación de un técnico senior en M3 con fondos T2; uso agresivo de herramientas de IA para productividad (Cursor, Claude Code).
+\item \textbf{R11 — Retención por debajo de lo proyectado}. Si churn > 25\%, LTV cae a \$930 MXN y LTV/CAC a 6.2× (aún saludable pero por debajo del umbral de 10×). Mitigación: modelo Weibull con parámetros recalibrados mensualmente; intervención proactiva para usuarios con señal de abandono.
+\end{itemize}
+
+\section{Matriz de riesgo}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{1cm}p{5cm}p{2cm}p{2cm}p{3.5cm}}
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Prob.} & \textbf{Impacto} & \textbf{Mitigación principal} \\
+\midrule
+R1 & DeepSeek API price & Media & Medio & OpenRouter failover \\
+R2 & Churn por RAG insuficiente & Alta & Alto & Onboarding + librería fallback \\
+R3 & Latencia alta del LLM & Baja & Medio & Cache + streaming \\
+R4 & Bug crítico en producción & Media & Medio & Tests + rollback automático \\
+R5 & Validación débil (25 users) & Media & Alto & Beta ampliada + estudio académico \\
+R6 & Pérdida de datos & Baja & Alto & Backups diarios + R2 redundancia \\
+R7 & Competidor genérico & Media & Alto & Foso RAG + localización MX \\
+R8 & Burnout founder & Media & Alto & Contratación M3 + IA tools \\
+R9 & Regulación mexicana IA & Baja & Medio & Compliance proactivo LFPDPPP \\
+R10 & Falla de Mercado Pago & Baja & Medio & Stripe como fallback \\
+R11 & Retención baja & Media & Medio & Weibull recalibrado + intervención \\
+R12 & Ataque de seguridad & Baja & Alto & Argon2id + RBAC + auditoría \\
+\bottomrule
+\end{tabular}
+\caption{Matriz de riesgos completa}
+\end{table}
+
+\chapter{Hoja de Ruta (Roadmap)}
+
+\section{Visión por fases}
+El roadmap de Axiom se organiza en 3 fases a 36 meses:
+
+\section{Fase 1 — MVP (M0--M6)}
+\textbf{Objetivo}: 50 usuarios beta, validación de tesis RAG.
+
+\textbf{Equipo}: 1 persona (founder).
+
+\textbf{Hitos}:
+\begin{itemize}[leftmargin=1.4em]
+\item M0--M2: Bootstrap \$5K founder. Setup infraestructura. Implementación núcleo (auth, RAG, agentes, módulos básicos).
+\item M3--M4: Levantamiento T2 \$100K. Onboarding primeros 10 beta users. Iteración UX basada en feedback.
+\item M5--M6: 50 beta users. Implementación billing real con Mercado Pago. Cobro a primeros 5 usuarios pagos.
+\end{itemize}
+
+\textbf{OpEx}: \$2,200 MXN/mes. \textbf{Infra}: ~\$113 USD/mes.
+
+\textbf{Criterio Go/No-Go a Fase 2}: $P(\text{BE Fase 2}) \geq 80\%$ AND LTV/CAC $\geq 3\times$.
+
+\section{Fase 2 — PMF (M7--M14)}
+\textbf{Objetivo}: 100 usuarios pagos, product-market fit.
+
+\textbf{Equipo}: 3--5 personas (founder + 2 ingenieros + 1 designer + 1 growth).
+
+\textbf{Hitos}:
+\begin{itemize}[leftmargin=1.4em]
+\item M7--M8: Levantamiento T3 \$400K. Contratación equipo. Migración a Postgres + Qdrant Cloud.
+\item M9: Break-even Fase 2 (57 usuarios pagos en escenario Base).
+\item M10--M12: 100 usuarios pagos. Implementación LoRA fine-tuning para primer dominio (software).
+\item M13--M14: 200 usuarios pagos. Expansión a segundo dominio (finanzas).
+\end{itemize}
+
+\textbf{OpEx}: \$15,725 MXN/mes. \textbf{Infra}: ~\$500 USD/mes.
+
+\textbf{Criterio Go/No-Go a Fase 3}: 100+ usuarios pagos sostenidos 3 meses AND $P(\text{NPV} > 0) \geq 85\%$.
+
+\section{Fase 3 — Escala (M15--M24)}
+\textbf{Objetivo}: 1,000+ usuarios pagos, expansión a LATAM.
+
+\textbf{Equipo}: 10--15 personas.
+
+\textbf{Hitos}:
+\begin{itemize}[leftmargin=1.4em]
+\item M15--M18: 500 usuarios pagos. Migración a FastAPI + workers asíncronos. Self-hosted Qdrant en K8s.
+\item M19--M21: 1,000 usuarios pagos. Expansión a Colombia y Perú. Integración con Stripe.
+\item M22--M24: 2,000 usuarios pagos. Enterprise SSO, integraciones personalizadas.
+\end{itemize}
+
+\textbf{OpEx}: \$49,875 MXN/mes (solo si MRR > \$50,000). \textbf{Infra}: \$1,500--2,500 USD/mes.
+
+\section{Roadmap técnico detallado}
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{1.5cm}p{4cm}p{7cm}}
+\toprule
+\textbf{Mes} & \textbf{Hito técnico} & \textbf{Detalles} \\
+\midrule
+M0 & Setup repo + CI/CD & Next.js 16, Prisma 7, Vitest, Playwright, GitHub Actions \\
+M1 & Auth + RBAC + DB schema & Argon2id, JWT, 30+ modelos Prisma \\
+M2 & RAG pipeline + agentes & VectorStore, BGE-M3, 5 agentes, orquestador \\
+M3 & Módulos: Conversación, Texto & LIL, streaming, correcciones \\
+M4 & Módulos: Voz, Mecanografía & TTS Kokoro, Levenshtein, BLEU \\
+M5 & Billing Mercado Pago & 4 planes, webhooks, plan-gating \\
+M6 & Observabilidad completa & Sentry, PostHog, Langfuse, OTel \\
+M7 & Migración a Postgres + Qdrant & Cambio provider Prisma, Qdrant Cloud \\
+M8 & Reranking con Cohere & bge-reranker-v2-m3, +10\% Context Recall \\
+M9 & LoRA fine-tuning software & 50K QA pairs, ~110M trainable params \\
+M10 & Streaming WebSocket & mini-service chat-service, streaming LLM \\
+M11 & App móvil React Native & iOS + Android, code share con web \\
+M12 & FastAPI + workers & Migración de API Routes a FastAPI \\
+M15 & Multi-tenant Enterprise & SSO SAML, aislamiento de datos por tenant \\
+M18 & LoRA fine-tuning finanzas & Segundo dominio especializado \\
+M24 & App móvil nativa & Swift + Kotlin para performance superior \\
+\bottomrule
+\end{tabular}
+\caption{Roadmap técnico detallado M0--M24}
+\end{table}
+
+\chapter{Auditoría de Calidad}
+
+\section{Metodología de auditoría}
+La auditoría interna de calidad se realizó siguiendo la metodología \textit{Heuristic Software Quality Assessment} (HSQA), que evalúa 7 dimensiones: arquitectura, seguridad, performance, mantenibilidad, testing, observabilidad y documentación. Cada dimensión se puntúa de 0 a 5 según criterios objetivos, y se generan findings priorizados.
+
+\section{Hallazgos (findings)}
+La auditoría identificó \textbf{14 findings} distribuidos por severidad:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{1.5cm}p{5cm}p{5cm}p{2cm}}
+\toprule
+\textbf{ID} & \textbf{Hallazgo} & \textbf{Acción correctiva} & \textbf{Severidad} \\
+\midrule
+F-01 & Falta rate limiting en endpoints críticos & Implementar \texttt{rate-limiter.ts} en \texttt{middleware} & Alta \\
+F-02 & CORS demasiado permissivo & Restringir a dominios axiom.mx & Media \\
+F-03 & Secrets en variables de entorno no rotados & Rotación trimestral + secrets manager & Media \\
+F-04 & Logs contienen PII ocasional & Sanitización de PII en logger & Media \\
+F-05 & Tests E2E fallan intermitentemente & \texttt{retry: 2} + wait strategies & Media \\
+F-06 & Cobertura de ramas < 70\% & Añadir tests para edge cases & Media \\
+F-07 & Bundle size > 500KB & Code splitting + dynamic imports & Media \\
+F-08 & Imagen de perfil no optimizada & Next/Image + WebP & Baja \\
+F-09 & Falta página 404 personalizada & Crear \texttt{not-found.tsx} & Baja \\
+F-10 & \texttt{ErrorBoundary} faltante en UI & Añadir \texttt{error.tsx} global & Baja \\
+F-11 & Schema DB sin constraint CHECK & Añadir constraints para enums & Baja \\
+F-12 & Falta índice en \texttt{Payment.mpPaymentId} & \texttt{@@index([mpPaymentId])} & Baja \\
+F-13 & Documentación API faltante & OpenAPI/Swagger auto-generado & Media \\
+F-14 & Sin política de retención de logs & Definir TTL por tipo de log & Baja \\
+\bottomrule
+\end{tabular}
+\caption{Hallazgos de la auditoría de calidad}
+\end{table}
+
+\section{Deuda técnica}
+La deuda técnica identificada asciende a \textbf{12 items} mapeados a aproximadamente 12 días-hombre de trabajo:
+
+\begin{enumerate}[leftmargin=1.6em]
+\item Migración de SQLite a PostgreSQL (1 día)
+\item Migración de VectorStore en memoria a Qdrant Cloud (2 días)
+\item Implementación de rate limiting global (1 día)
+\item Sanitización de PII en logger (0.5 día)
+\item Estabilización de tests E2E (1 día)
+\item Aumento de cobertura de ramas al 75\% (1.5 días)
+\item Code splitting y lazy loading de rutas (1 día)
+\item OpenAPI/Swagger auto-generado (1 día)
+\item Política de retención de logs (0.5 día)
+\item Constraints CHECK en schema (0.5 día)
+\item \texttt{ErrorBoundary} y página 404 (0.5 día)
+\item Rotación de secrets (1 día)
+\end{enumerate}
+
+\section{Estado final de calidad}
+El estado final tras la auditoría es:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{p{4cm}p{4cm}p{4cm}}
+\toprule
+\textbf{Dimensión} & \textbf{Score (0--5)} & \textbf{Estado} \\
+\midrule
+Arquitectura & 4.0 & Sólida \\
+Seguridad & 3.5 & Aceptable, mejoras pendientes \\
+Performance & 4.0 & Buena para MVP \\
+Mantenibilidad & 4.0 & Código limpio, tipado estricto \\
+Testing & 3.5 & Cobertura adecuada, E2E intermitente \\
+Observabilidad & 4.5 & Excelente \\
+Documentación & 4.0 & TDD + auditoría + este documento \\
+\midrule
+\textbf{Promedio} & \textbf{3.93} & \textbf{Production-ready ≤20 users} \\
+\bottomrule
+\end{tabular}
+\caption{Score final por dimensión de calidad}
+\end{table}
+
+\chapter{Conclusión y Próximos Pasos}
+
+\section{Estado actual}
+Axiom v7.0 se encuentra en un estado \textbf{sólido de MVP production-ready para beta interna de ≤20 usuarios simultáneos}. La arquitectura está correctamente fundamentada, el modelo pedagógico está matemáticamente validado, los 5 agentes IA operan con trazabilidad completa, el pipeline RAG funciona end-to-end con métricas RAGAS aceptables, y la pirámide de testing cubre los flujos críticos del producto.
+
+Las decisiones arquitectónicas tomadas (monolito Next.js, SQLite, VectorStore en memoria, DeepSeek V4-Flash, Mercado Pago) son apropiadas para la Fase 1 y son reversibles con bajo costo cuando el crecimiento lo demande. Las ADRs documentadas proporcionan el contexto histórico para futuras decisiones.
+
+\section{Lo que funciona bien}
+\begin{itemize}[leftmargin=1.4em]
+\item \textbf{Pipeline RAG completo} — ingesta, troceado, embeddings, recuperación adaptativa, integración con LLM.
+\item \textbf{Modelo pedagógico matemáticamente fundamentado} — IRT 3PL bayesiano, FSRS, Weibull, con tests unitarios cubriendo casos extremos.
+\item \textbf{Sistema de agentes con trazabilidad} — 5 agentes, 9 herramientas, persistencia completa en \texttt{AgentToolCall}.
+\item \textbf{Observabilidad de extremo a extremo} — \texttt{X-Request-ID} propagado a logs, traces, audit, eventos.
+\item \textbf{UI/UX profesional} — sistema de diseño LinguaIA aplicado consistentemente.
+\item \textbf{Testing automatizado} — 72 tests unitarios, 4 specs E2E, 3 escenarios de carga.
+\item \textbf{CI/CD maduro} — pipeline GitHub Actions con lint + tests + build en cada PR.
+\end{itemize}
+
+\section{Lo que falta para lanzamiento público}
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Resolución de los 14 findings de auditoría} — estimados 12 días-hombre.
+\item \textbf{Validación con 50 usuarios beta adicionales} — 4 semanas.
+\item \textbf{Migración a Postgres + Qdrant Cloud} — 2 días con plan de rollback.
+\item \textbf{Política de privacidad y términos de servicio legales} — 1 semana con abogado.
+\item \textbf{Plan de respuesta a incidentes} — 2 días de documentación + tabletop exercise.
+\item \textbf{Onboarding flow optimizado} — 1 semana de iteración con usuarios beta.
+\item \textbf{Dashboard de métricas de negocio} — 3 días para admin avanzado.
+\end{enumerate}
+
+Total estimado para lanzamiento público: \textbf{4--6 semanas} con 1 ingeniero, o \textbf{2--3 semanas} con 2 ingenieros en paralelo.
+
+\section{Recomendaciones estratégicas}
+\begin{enumerate}[leftmargin=1.6em]
+\item \textbf{Acelerar la validación externa}. El riesgo R5 (validación débil con 25 usuarios) es el más subestimado. Recomendación: cerrar partnership con una universidad mexicana para un estudio académico independiente antes de levantar T3.
+\item \textbf{Construir el flywheel RAG cuanto antes}. Cada usuario que carga documentos incrementa el foso competitivo. Recomendación: hacer del onboarding con documentos demo la prioridad \#1 de UX.
+\item \textbf{Diferenciación por dominio profesional}. La especialización en software, finanzas y manufactura es difícil de replicar. Recomendación: lanzar el primer LoRA fine-tuning para software en M9 (no M12 como en roadmap original).
+\item \textbf{Métricas north star claras}. Definir 2--3 métricas que todo el equipo vigile semanalmente: (1) D7 retention, (2) RAG coverage score (% de respuestas que citan chunks RAG), (3) Trial-to-pay conversion.
+\item \textbf{Comunicación transparente con inversores}. El modelo financiero es sólido pero depende de supuestos no validados. Recomendación: presentar el plan con escenarios P10/P50/P90 explícitos, no solo el Base.
+\end{enumerate}
+
+\section{Cierre}
+Axiom es un proyecto ambicioso pero bien fundamentado. Combina una tesis de producto diferenciada (RAG sobre documentos profesionales del usuario), un mercado con viento de cola (nearshoring + crisis de inglés en México), una arquitectura técnicamente sólida y escalable, un modelo pedagógico con rigor matemático, y un equipo fundador con visión clara. Los próximos 6 meses son críticos: ejecutar la beta ampliada, validar la tesis con datos independientes, y cerrar la tranche T3 para acelerar la Fase 2.
+
+\begin{tcolorbox}[infobox,title=Mensaje final]
+El éxito de Axiom no dependerá de la tecnología (que está lista), ni del mercado (que está creciendo), ni del equipo (que se está formando). Dependerá de la disciplina para ejecutar el plan, escuchar a los usuarios beta, y adaptar el producto a las señales del mercado sin perder la tesis central. \textit{Aprender inglés dentro de mi trabajo} no es un slogan; es la promesa que cada decisión de producto debe honrar.
+\end{tcolorbox}
+
+% APÉNDICES
+\appendix
+
+\chapter{Estructura de Directorios del Proyecto}
+
+\begin{lstlisting}[style=bash,caption={Estructura de directorios}]
+axiom/
+├── .github/workflows/
+│   └── ci.yml                    # Pipeline CI/CD GitHub Actions
+├── docs/
+│   ├── TDD.md                    # Technical Design Document
+│   ├── QUALITY-AUDIT.md          # Auditoría de calidad
+│   └── SECURITY-AUDIT.md         # Auditoría de seguridad
+├── prisma/
+│   ├── schema.prisma             # Esquema DB (1,047 líneas, 30+ modelos)
+│   └── migrations/               # Migraciones SQL generadas
+├── public/                       # Assets estáticos
+├── scripts/
+│   ├── seed.ts                   # Seed inicial (814 líneas)
+│   └── latex/                    # Esta documentación LaTeX
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx            # Root layout con Lexend + Material Symbols
+│   │   ├── page.tsx              # Aplicación principal (1,616 líneas)
+│   │   ├── globals.css           # Sistema de diseño LinguaIA
+│   │   └── api/                  # 22 rutas API REST
+│   │       ├── auth/route.ts
+│   │       ├── profile/route.ts
+│   │       ├── modules/route.ts
+│   │       ├── voice/route.ts
+│   │       ├── typing/route.ts
+│   │       ├── translation/route.ts
+│   │       ├── reading/route.ts
+│   │       ├── tts/route.ts
+│   │       ├── curriculum/route.ts
+│   │       ├── learning-mode/route.ts
+│   │       ├── progress/route.ts
+│   │       ├── knowledge/vocab/route.ts
+│   │       ├── documents/route.ts
+│   │       ├── billing/route.ts
+│   │       ├── billing/webhook/route.ts
+│   │       ├── agents/route.ts
+│   │       └── admin/{users,flags,errors,audit,metrics}/route.ts
+│   ├── components/
+│   │   ├── icons.tsx             # Wrapper Material Symbols
+│   │   └── ui/                   # 30+ componentes shadcn/ui
+│   ├── hooks/
+│   │   ├── use-mobile.ts
+│   │   └── use-toast.ts
+│   ├── lib/
+│   │   ├── algorithms/index.ts   # Algoritmos puros (629 líneas)
+│   │   ├── pedagogy/index.ts     # IRT + FSRS + Weibull (272 líneas)
+│   │   ├── agents/
+│   │   │   ├── orchestrator.ts   # Orquestador (266 líneas)
+│   │   │   ├── tools.ts          # 9 herramientas (413 líneas)
+│   │   │   └── agents.ts         # 5 agentes (679 líneas)
+│   │   ├── auth/index.ts         # Argon2id + JWT + RBAC (404 líneas)
+│   │   ├── billing/index.ts      # Mercado Pago (403 líneas)
+│   │   ├── db.ts                 # Cliente Prisma
+│   │   ├── events/index.ts       # Event bus (176 líneas)
+│   │   ├── llm/index.ts          # Adaptador OpenRouter (199 líneas)
+│   │   ├── memory/index.ts       # Memoria dual (255 líneas)
+│   │   ├── lil/index.ts          # Learning Intelligence Layer (321 líneas)
+│   │   ├── observability.ts      # Logger + tracer + audit (245 líneas)
+│   │   ├── rag/
+│   │   │   ├── vector-store.ts   # VectorStore en memoria (173 líneas)
+│   │   │   └── retrieval.ts      # Retrieval adaptativo (223 líneas)
+│   │   ├── security/rate-limiter.ts
+│   │   ├── error-capture.ts
+│   │   ├── types.ts              # Tipos compartidos (275 líneas)
+│   │   └── utils.ts
+│   └── middleware.ts             # Auth middleware (111 líneas)
+├── tests/
+│   ├── setup.ts
+│   ├── unit/                     # 8 archivos, 72 tests
+│   ├── e2e/                      # 4 specs Playwright
+│   └── load/api-load.js          # k6 load tests
+├── mini-services/
+│   └── chat-service/             # WebSocket service (puerto 3003)
+├── package.json
+├── tsconfig.json
+├── next.config.ts
+├── tailwind.config.ts
+├── vitest.config.ts
+├── playwright.config.ts
+└── Caddyfile                     # Reverse proxy config
+\end{lstlisting}
+
+\chapter{Comandos de Desarrollo}
+
+\section{Setup inicial}
+
+\begin{lstlisting}[style=bash]
+# Clonar el repositorio
+git clone <repo-url> axiom
+cd axiom
+
+# Instalar dependencias (bun recomendado, npm compatible)
+bun install
+
+# Copiar template de variables de entorno
+cp .env.example .env
+# Editar .env con tus claves
+
+# Generar cliente Prisma
+bunx prisma generate
+
+# Crear base de datos SQLite y aplicar migraciones
+bunx prisma migrate dev --name init
+
+# Ejecutar seed inicial (planes, roles, vocabulario demo, usuario admin)
+bun run seed
+
+# Iniciar servidor de desarrollo
+bun dev
+# App disponible en http://localhost:3000
+\end{lstlisting}
+
+\section{Comandos diarios}
+
+\begin{lstlisting}[style=bash]
+# Desarrollo
+bun dev                          # Servidor dev con Turbopack
+bun run lint                     # ESLint
+bun run typecheck                # tsc --noEmit
+
+# Testing
+bun run test:unit                # Vitest en watch mode
+bun run test:unit:run            # Vitest run once + coverage
+bun run test:e2e                 # Playwright (requiere dev server)
+bun run test:load                # k6 load tests
+
+# Base de datos
+bunx prisma studio               # GUI para inspeccionar DB
+bunx prisma migrate dev          # Crear + aplicar migración
+bunx prisma migrate reset        # Reset completo (cuidado!)
+bunx prisma db seed              # Re-ejecutar seed
+
+# Build
+bun run build                    # Build producción
+bun start                        # Servir build producción
+\end{lstlisting}
+
+\section{Credenciales demo}
+Tras ejecutar el seed, el usuario administrador demo está disponible:
+
+\begin{lstlisting}[style=bash]
+Email:    admin@axiom.mx
+Password: axiom12345
+Rol:      admin
+\end{lstlisting}
+
+\chapter{Glosario}
+
+\begin{description}[leftmargin=1.4em,itemsep=2pt]
+\item[ARCO] Derechos del titular de datos personales: Acceso, Rectificación, Cancelación, Oposición. Establecidos en la LFPDPPP mexicana.
+\item[Argon2id] Algoritmo de hashing de contraseñas, ganador de la Password Hashing Competition 2015. Resistente a GPU y side-channel attacks.
+\item[BGE-M3] Modelo de embeddings multilingüe open source desarrollado por BAAI, 1024 dimensiones, soporta 100+ idiomas.
+\item[CEFR / MCER] Common European Framework of Reference for Languages / Marco Común Europeo. Escala de 6 niveles (A1--C2) para medir competencia lingüística.
+\item[CAC] Customer Acquisition Cost. Costo de adquirir un usuario que paga.
+\item[Churn] Tasa de cancelación de suscripciones. Mensual en nuestro modelo.
+\item[Cohort] Grupo de usuarios que comparten un evento temporal (e.g. «cohort de registro de enero»).
+\item[D7 retention] Porcentaje de usuarios que regresan al producto 7 días después de su primer uso.
+\item[FSRS] Free Spaced Repetition Scheduler. Algoritmo de repetición espaciada (Ye et al., 2024), sucesor de SM-2.
+\item[HNSW] Hierarchical Navigable Small World. Algoritmo de indexación para búsqueda aproximada de vecinos más cercanos.
+\item[IRT 3PL] Item Response Theory, Three-Parameter Logistic. Modelo psicométrico para estimar habilidad latente.
+\item[JWT] JSON Web Token. Estándar para tokens de autenticación stateless.
+\item[LFPDPPP] Ley Federal de Protección de Datos Personales en Posesión de los Particulares (México).
+\item[LoRA] Low-Rank Adaptation. Técnica de fine-tuning eficiente que entrena solo una fracción de los parámetros.
+\item[LTV] Lifetime Value. Valor presente de los ingresos netos esperados de un usuario durante su ciclo de vida.
+\item[MRR] Monthly Recurring Revenue. Ingresos mensuales recurrentes por suscripciones.
+\item[NPS] Net Promoter Score. Métrica de satisfacción: \% promotores - \% detractores.
+\item[PMF] Product-Market Fit. Ajuste producto-mercado, momento en que el producto satisface una demanda real y sostenible.
+\item[RBAC] Role-Based Access Control. Modelo de control de acceso basado en roles.
+\item[RAG] Retrieval-Augmented Generation. Patrón que combina recuperación de información y generación con LLM.
+\item[TTFT] Time To First Token. Latencia desde la solicitud hasta el primer token de la respuesta del LLM.
+\item[WACC] Weighted Average Cost of Capital. Costo promedio ponderado del capital.
+\item[Weibull] Distribución de probabilidad usada en análisis de supervivencia.
+\end{description}
+
+\chapter{Referencias}
+
+\begin{enumerate}[leftmargin=1.6em]
+\item EF Education First. \textit{EF English Proficiency Index 2025}. EF EPI, 2025.
+\item HolonIQ. \textit{Global EdTech Market Size 2026-2031}. HolonIQ Research, 2026.
+\item INEGI. \textit{Encuesta Nacional de Ocupación y Empleo (ENOE) Q1 2025}. INEGI, 2025.
+\item OCC Mundial. \textit{Estudio Salarial Bilingüe 2024}. OCC Mundial, 2024.
+\item Ye, J., et al. ``Free Spaced Repetition Scheduler.'' \textit{arXiv preprint arXiv:2402.10146}, 2024.
+\item Lord, F. M. ``Applications of Item Response Theory to Practical Testing Problems.'' \textit{Routledge}, 1980.
+\item Embretson, S. E., \& Reise, S. P. ``Item Response Theory for Psychologists.'' \textit{Multivariate Applications Book Series}, 2000.
+\item Malkov, Y. A., \& Yashunin, D. A. ``Efficient and robust approximate nearest neighbor search using Hierarchical Navigable Small World graphs.'' \textit{arXiv preprint arXiv:1603.09320}, 2016.
+\item Lewis, P. et al. ``Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks.'' \textit{NeurIPS}, 2020.
+\item Es, S. et al. ``RAGAS: Automated Evaluation of Retrieval Augmented Generation.'' \textit{EACL}, 2024.
+\item BAAI. ``BGE M3-Embedding: Multi-Lingual, Multi-Functionality, Multi-Granularity Text Embeddings.'' \textit{arXiv preprint arXiv:2402.03216}, 2024.
+\item DeepSeek AI. ``DeepSeek V4 Technical Report.'' \textit{arXiv preprint}, 2026.
+\item Secretaría de Economía México. \textit{Informe de IED 2025}. SE México, 2025.
+\item INAI. \textit{Guía de cumplimiento LFPDPPP}. INAI, 2024.
+\item Yao, B. et al. ``LoRA: Low-Rank Adaptation of Large Language Models.'' \textit{ICLR}, 2022.
+\end{enumerate}
+
+\vfill
+\begin{center}
+\color{axiomnavy}\rule{\textwidth}{0.5pt}\\[6pt]
+{\small\itshape Fin del documento principal — Apéndices continúan}\\[2pt]
+{\small\color{softgray} Compilado con Tectonic · \today}
+\end{center}
+
+\newpage
+\input{appended_content}
+
+\end{document}

@@ -19,7 +19,10 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'bun run dev',
+    // env -u DATABASE_URL: la shell puede traer un DATABASE_URL exportado que
+    // anularía el .env y montaría una BD fantasma (los workers del CI no lo
+    // definen, así que la negación es inofensiva allí).
+    command: 'env -u DATABASE_URL bun run dev',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
     timeout: 60 * 1000,

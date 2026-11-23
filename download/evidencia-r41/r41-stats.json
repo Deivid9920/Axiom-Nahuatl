@@ -1,0 +1,119 @@
+[
+  {
+    "name": "lab-follow",
+    "stats": {
+      "fps": 16,
+      "calls": 59,
+      "tris": 21849,
+      "geos": 35,
+      "tex": 6,
+      "progs": 22,
+      "tone": 7,
+      "lemur": "idle"
+    }
+  },
+  {
+    "name": "lab-idle",
+    "stats": {
+      "fps": 1,
+      "calls": 56,
+      "tris": 21821,
+      "geos": 35,
+      "tex": 6,
+      "progs": 22,
+      "tone": 7,
+      "lemur": "idle"
+    }
+  },
+  {
+    "name": "lab-look",
+    "stats": {
+      "fps": 2,
+      "calls": 56,
+      "tris": 21821,
+      "geos": 35,
+      "tex": 6,
+      "progs": 22,
+      "tone": 7,
+      "lemur": "look"
+    }
+  },
+  {
+    "name": "lab-run",
+    "stats": {
+      "fps": 1,
+      "calls": 56,
+      "tris": 21821,
+      "geos": 35,
+      "tex": 6,
+      "progs": 22,
+      "tone": 7,
+      "lemur": "run"
+    }
+  },
+  {
+    "name": "lab-arrived",
+    "stats": {
+      "fps": 1,
+      "calls": 56,
+      "tris": 21821,
+      "geos": 35,
+      "tex": 6,
+      "progs": 22,
+      "tone": 7,
+      "lemur": "idle"
+    }
+  },
+  {
+    "name": "lab-celebrate",
+    "stats": {
+      "fps": 2,
+      "calls": 56,
+      "tris": 21821,
+      "geos": 35,
+      "tex": 6,
+      "progs": 22,
+      "tone": 7,
+      "lemur": "celebrate"
+    }
+  },
+  {
+    "name": "app-follow",
+    "stats": {
+      "fps": 1,
+      "calls": 177,
+      "tris": 328430,
+      "geos": 119,
+      "tex": 6,
+      "progs": 26,
+      "tone": 7,
+      "lemur": "idle"
+    }
+  },
+  {
+    "name": "app-run",
+    "stats": {
+      "fps": 1,
+      "calls": 177,
+      "tris": 328430,
+      "geos": 119,
+      "tex": 6,
+      "progs": 26,
+      "tone": 7,
+      "lemur": "run"
+    }
+  },
+  {
+    "name": "app-arrived",
+    "stats": {
+      "fps": 1,
+      "calls": 118,
+      "tris": 326448,
+      "geos": 119,
+      "tex": 6,
+      "progs": 26,
+      "tone": 7,
+      "lemur": "run"
+    }
+  }
+]

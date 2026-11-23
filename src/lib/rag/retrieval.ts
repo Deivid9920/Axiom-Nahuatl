@@ -1,9 +1,7 @@
 // AXIOM — RAG Retrieval
-// Pipeline: filter + vector search + re-rank + boost
-
 import { db } from '@/lib/db'
 import { getVectorStore, type ScoredPoint } from './vector-store'
-import { embed } from '@/lib/llm'
+import { embedSync } from '@/lib/llm'
 import { logger, tracer, type Span } from '@/lib/observability'
 import type { Domain, CefrLevel } from '@/lib/types'
 
@@ -21,7 +19,6 @@ export interface RetrievalRequest {
 
 export interface RetrievalResult {
   chunks: ScoredPoint[]
-  // For audit/replay: which chunks were retrieved and why
   debug?: {
     vectorSearchTopK: ScoredPoint[]
     errorBoostApplied: boolean
@@ -29,7 +26,6 @@ export interface RetrievalResult {
   }
 }
 
-// Adaptive Retrieval (per TDD §2.4)
 export async function retrieve(
   req: RetrievalRequest,
   parentSpan?: Span
@@ -44,8 +40,7 @@ export async function retrieve(
       span.setAttribute('user.id', req.userId)
 
       // 1. Embed query
-      const embedded = await embed({ input: req.query, user: req.userId })
-      const queryVec = embedded.data[0].embedding
+      const queryVec = embedSync(req.query)
       span.addEvent('query.embedded')
 
       // 2. CEFR filter: user's level ±1
@@ -59,10 +54,6 @@ export async function retrieve(
       const vectorResults = await store.search({
         vector: queryVec,
         topK: searchK,
-        tenant: {
-          userId: req.userId,
-          includeGlobal: true,
-        },
         filter: {
           domain: req.domain,
           cefrLevels,
@@ -159,7 +150,7 @@ function getCefrNeighbors(level: CefrLevel): string[] {
   return result
 }
 
-// Map IRT theta (-3 to +2) to difficulty score (0 to 1)
+// Map IRT theta (-3..+2) to difficulty (0..1): A1 → 0.0, C2 → 1.0
 function thetaToDifficulty(theta: number): number {
   return Math.max(0, Math.min(1, (theta + 3) / 5))
 }

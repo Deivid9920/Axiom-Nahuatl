@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { Lexend } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "@/components/ui/toaster";
-import { BRAND, ORGANIZATION, ATTRIBUTION } from "@/lib/brand";
+import { Toaster } from "@/components/ui/sonner"; // R24: sonner — todo el código de la app llama toast() de sonner; el Toaster de Radix dejaba cada notificación en no-op silencioso
 
 const lexend = Lexend({
   variable: "--font-lexend",
@@ -11,40 +10,22 @@ const lexend = Lexend({
   display: "swap",
 });
 
-const TITLE = `${BRAND.name} — Náhuatl: escucha y pronunciación`;
-
 export const metadata: Metadata = {
-  title: TITLE,
-  description: `${BRAND.description} ${ATTRIBUTION.short}`,
-  keywords: [
-    "Axiom",
-    "náhuatl",
-    "pronunciación",
-    "comprensión auditiva",
-    "escucha",
-    "fonética",
-    "IA",
-    "México",
-    "lenguas originarias",
-    "EdTech",
-  ],
-  authors: [{ name: ORGANIZATION.name }],
-  applicationName: BRAND.name,
+  title: "Axiom — Aprende inglés dentro de tu trabajo",
+  description: "Plataforma de aprendizaje de inglés con IA para profesionales mexicanos. RAG con tus propios documentos, IRT 3PL, FSRS, DeepSeek V4.",
+  keywords: ["Axiom", "inglés", "IA", "RAG", "profesionales", "México", "nearshoring", "DeepSeek", "EdTech"],
+  authors: [{ name: "Equipo Axiom" }],
   openGraph: {
-    title: TITLE,
-    description: `${BRAND.description} ${ATTRIBUTION.short}`,
+    title: "Axiom — Aprende inglés dentro de tu trabajo",
+    description: "Plataforma de IA para profesionales mexicanos. RAG con tus documentos, IRT 3PL + FSRS, DeepSeek V4.",
     url: "https://axiom.mx",
-    siteName: BRAND.name,
+    siteName: "Axiom",
     type: "website",
-    locale: "es_MX",
   },
   twitter: {
     card: "summary_large_image",
-    title: TITLE,
-    description: BRAND.description,
-  },
-  icons: {
-    icon: "/logo.svg",
+    title: "Axiom — Aprende inglés dentro de tu trabajo",
+    description: "Plataforma de IA para profesionales mexicanos.",
   },
 };
 

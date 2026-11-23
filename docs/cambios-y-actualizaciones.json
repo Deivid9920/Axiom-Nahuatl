@@ -1,0 +1,134 @@
+{
+  "project": "Axiom",
+  "documentTitle": "Cambios y Actualizaciones",
+  "subtitle": "Registro continuo de modificaciones técnicas, interfaz y arquitectura del proyecto",
+  "entries": [
+    {
+      "id": "CHG-001",
+      "date": "2026-11-18 22:05",
+      "category": "Configuración y Dependencias",
+      "title": "Estabilización del proyecto tras reemplazo de archivos en Windows",
+      "summary": "Corrección de ruta de base de datos, dependencias compatibles con Windows y regeneración del cliente de Prisma.",
+      "details": [
+        "Se corrigió DATABASE_URL en .env de una ruta absoluta de Linux (/home/z/...) a la ruta relativa file:../db/custom.db.",
+        "Se eliminó @next/swc-linux-x64-gnu de devDependencies en package.json para evitar el error EBADPLATFORM en Windows.",
+        "Se instalaron las dependencias faltantes en node_modules (@react-three/fiber, three, @types/three, canvas-confetti, qrcode, @types/qrcode, tw-animate-css).",
+        "Se regeneró Prisma Client (npx prisma generate) sincronizado con las 54 tablas de prisma/schema.prisma."
+      ],
+      "files": [
+        ".env",
+        "package.json"
+      ],
+      "status": "Verificado (servidor activo en http://localhost:3000)"
+    },
+    {
+      "id": "CHG-002",
+      "date": "2026-11-18 22:50",
+      "category": "Limpieza de Código",
+      "title": "Eliminación de archivos huérfanos incompatibles",
+      "summary": "Se removieron 3 archivos heredados de una versión anterior que no eran referenciados y bloqueaban TypeScript y Vitest.",
+      "details": [
+        "Se eliminaron src/app/api/listening/route.ts, src/app/api/pronunciation/route.ts y tests/unit/dictation.test.ts.",
+        "Se validó npm run typecheck con 0 errores y npm run test:unit con 25/25 suites (249/249 pruebas pasadas)."
+      ],
+      "files": [
+        "src/app/api/listening/route.ts (eliminado)",
+        "src/app/api/pronunciation/route.ts (eliminado)",
+        "tests/unit/dictation.test.ts (eliminado)"
+      ],
+      "status": "Verificado (typecheck 0 errores · 249/249 tests OK)"
+    },
+    {
+      "id": "CHG-003",
+      "date": "2026-11-18 23:15",
+      "category": "Interfaz 2D (Phaser 3)",
+      "title": "Mapa 2D jugable estilo Cuphead por nivel de inglés + Vista previa en gris del siguiente nivel",
+      "summary": "Se integró Phaser 3 para ofrecer un mapa overworld 2D interactivo tipo Inkwell Isle para los 10 módulos (A1.1 a B1.2) con personaje caminable y vista previa monocromática del próximo nivel.",
+      "details": [
+        "Se instalaron phaser (motor 2D) y docx (generador de reportes Word).",
+        "Se creó src/lib/world/overworld2d-themes.ts con 10 biomas/islas 2D diferenciados (Isla I a Isla X) usando la paleta cálida de Axiom (#2D2A26, #E76F51, #E9B83E, #FAF3E7, #6B8E6A).",
+        "Se creó src/components/overworld2d.tsx con escena Phaser 3: edificios caricatura por habilidad (Gramática, Vocabulario, Writing, Speaking, Listening, Repaso y Castillo Jefe para Evaluación Final), personaje Axi caminable con WASD/Flechas o clic, cámara con seguimiento/zoom/arrastre y animaciones tipo 1930s.",
+        "Se añadió una península en escala de grises conectada por un puente bloqueado al final de cada isla que muestra el siguiente módulo de inglés y abre un modal monocromático de vista previa con su temario completo y requisitos de desbloqueo.",
+        "Se integró Overworld2D como vista predeterminada en PathScene dentro de src/app/page.tsx, manteniendo un botón para alternar entre 2D Cuphead y 3D.",
+        "Se creó el sistema automático de reporte Word (Cambios y Actualizaciones.docx) respaldado por docs/cambios-y-actualizaciones.json y scripts/update-changelog-docx.mjs."
+      ],
+      "files": [
+        "package.json",
+        "src/lib/world/overworld2d-themes.ts",
+        "src/components/overworld2d.tsx",
+        "src/app/page.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "scripts/update-changelog-docx.mjs",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Reemplazado por PixiJS v8 en CHG-004"
+    },
+    {
+      "id": "CHG-004",
+      "date": "2026-11-18 23:32",
+      "category": "Interfaz 2D (PixiJS v8)",
+      "title": "Migración a PixiJS v8 con ilustración acuarela estilo Cuphead (sin personaje) + isla vecina en gris",
+      "summary": "Se sustituyó Phaser 3 por PixiJS v8 usando una ilustración 2D en acuarela y tinta inspirada en ImagenesReferenciaIslasModelos3D, eliminando el personaje y mostrando solo el escenario, los medallones de nivel y la isla vecina en escala de grises.",
+      "details": [
+        "Se analizaron las referencias visuales en ImagenesReferenciaIslasModelos3D (Referencias2D/Inkwell-Isle-Two-mapa.webp, bc3dc563354a0502013aff27c67e4a50.jpg e Islas/1..4.jpg).",
+        "Se desinstaló phaser y se instaló pixi.js (PixiJS v8) para renderizado WebGL2 2D con filtros nativos ColorMatrixFilter.",
+        "Se generó e integró la ilustración base 2D en acuarela y tinta 1930s (public/assets/overworld/isla-cuphead-base.jpg) con acantilados, puentes, río con cascada, anfiteatro, reloj, faro, castillo y camino crema limpio.",
+        "Se eliminó por completo el personaje caminable del mapa; ahora solo se muestran el escenario ilustrado y los 14 medallones numerados de nivel sobre el camino con estados completado, actual (pulso dorado), bloqueado y evaluación final.",
+        "Se implementó la diferenciación atmosférica de los 10 módulos (A1.1 a B1.2) mediante ColorMatrixFilter en src/lib/world/overworld2d-themes.ts.",
+        "Se añadió la isla vecina del siguiente nivel renderizada en escala de grises real (ColorMatrixFilter.desaturate) conectada al puente derecho, con modal de vista previa monocromática."
+      ],
+      "files": [
+        "package.json",
+        "public/assets/overworld/isla-cuphead-base.jpg",
+        "src/lib/world/overworld2d-themes.ts",
+        "src/components/overworld2d.tsx",
+        "src/app/page.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · servidor activo)"
+    },
+    {
+      "id": "CHG-005",
+      "date": "2026-11-18 23:48",
+      "category": "Corrección CSP y Renderizado 2D",
+      "title": "Corrección de carga de texturas PixiJS bloqueada por CSP y ajuste de HUD del mapa 2D",
+      "summary": "Se resolvió el bloqueo de Web Worker blob: que impedía renderizar la isla y los niveles en PixiJS v8, y se reubicaron controles para evitar solapamientos visuales.",
+      "details": [
+        "Se reemplazó PIXI.Assets.load() por carga directa vía HTMLImageElement + PIXI.Texture.from() en src/components/overworld2d.tsx para no depender de Web Workers blob: bloqueados por CSP.",
+        "Se añadió la directiva worker-src 'self' blob: en src/proxy.ts como respaldo de compatibilidad.",
+        "Se reubicó la placa del nombre de la isla al centro superior y los botones de zoom (+, −, ajustar vista) al lateral derecho despejado para evitar solapamientos con la placa de sesión y la mascota inferior derecha.",
+        "Se suavizó el brillo nocturno de la acuarela (0.86) para mantener el mapa legible en horario nocturno."
+      ],
+      "files": [
+        "src/components/overworld2d.tsx",
+        "src/proxy.ts",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado visualmente en navegador (Playwright)"
+    },
+    {
+      "id": "CHG-006",
+      "date": "2026-11-23 12:45",
+      "category": "Arquitectura por Capas 2D (PixiJS v8)",
+      "title": "Separación en capas independientes (cielo/mar infinito, islas PNG recortadas sin bordes cuadrados, nubes, aves y siguiente nivel distinto)",
+      "summary": "Se eliminaron por completo los contornos cuadrados recortando las islas con transparencia real (alpha feather) y separando cielo/mar, olas, barquitos, isla actual, isla siguiente (diseño diferente en gris), niveles y nubes en capas independientes de PixiJS v8.",
+      "details": [
+        "Se creó scripts/cutout-islands.mjs usando sharp (flood-fill desde los 4 bordes + difuminado alpha suave) para generar PNGs con transparencia real preservando ríos y cascadas interiores: public/assets/overworld/island-1.png y public/assets/overworld/island-2.png.",
+        "Se actualizó src/lib/world/overworld2d-themes.ts con catálogo de islas (ISLAND_ASSETS) con caminos propios por isla y alternancia obligatoria entre módulos consecutivos (incluyendo espejado horizontal y tintes atmosféricos distintos de M1 a M10) para que el siguiente nivel siempre se vea visualmente distinto al actual.",
+        "Se rediseñó src/components/overworld2d.tsx en 6 capas independientes de PixiJS v8: Capa 0 (cielo/océano infinito con gradiente, sol/luna, estrellas y olas animadas), Capa 1 (espuma costera y barquitos), Capa 2 (isla principal recortada sin cuadro), Capa 3 (puente arqueado + isla vecina diferente en escala de grises real), Capa 4 (camino punteado y 14 medallones) y Capa 5 (nubes y aves con paralaje)."
+      ],
+      "files": [
+        "scripts/cutout-islands.mjs",
+        "public/assets/overworld/island-1.png",
+        "public/assets/overworld/island-2.png",
+        "src/lib/world/overworld2d-themes.ts",
+        "src/components/overworld2d.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    }
+  ]
+}

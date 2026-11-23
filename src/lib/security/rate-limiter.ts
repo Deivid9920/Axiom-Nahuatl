@@ -112,40 +112,22 @@ class RateLimiter {
 const rateLimiter = new RateLimiter()
 export { rateLimiter }
 
-const TRUSTED_PROXIES = new Set(
-  (process.env.TRUSTED_PROXIES || '127.0.0.1,::1,::ffff:127.0.0.1')
-    .split(',')
-    .map(s => s.trim())
-    .filter(Boolean)
-)
-
-const IPV4 = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/
-const IPV6 = /^[0-9a-fA-F:]+$/
-
-function isValidIp(value: string): boolean {
-  if (IPV4.test(value)) {
-    return value.split('.').every(o => Number(o) <= 255)
-  }
-  return IPV6.test(value) && value.includes(':')
-}
-
-export function getClientIp(req: Request, socketIp?: string): string {
-  const proxyIsTrusted = socketIp
-    ? TRUSTED_PROXIES.has(socketIp)
-    : process.env.TRUST_PROXY_HEADERS === 'true'
-
-  if (proxyIsTrusted) {
-    const xff = req.headers.get('x-forwarded-for')
-    if (xff) {
-      const firstIp = xff.split(',')[0].trim()
-      if (isValidIp(firstIp)) return firstIp
+/**
+ * Get client IP from request, handling proxy headers safely
+ */
+export function getClientIp(req: Request): string {
+  // Check X-Forwarded-For (most common proxy header)
+  const xff = req.headers.get('x-forwarded-for')
+  if (xff) {
+    // Take the first IP in the chain (closest to the client)
+    // Validate it's a real IP address
+    const firstIp = xff.split(',')[0].trim()
+    if (/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(firstIp) || /^[0-9a-fA-F:]+$/.test(firstIp)) {
+      return firstIp
     }
-    const xri = req.headers.get('x-real-ip')
-    if (xri && isValidIp(xri.trim())) return xri.trim()
   }
-
-  // Sin proxy de confianza, la única fuente fiable es la conexión misma.
-  if (socketIp && isValidIp(socketIp)) return socketIp
-
+  // Check X-Real-IP (nginx)
+  const xri = req.headers.get('x-real-ip')
+  if (xri) return xri.trim()
   return 'unknown'
 }

@@ -1,9 +1,17 @@
 // AXIOM — Pedagogical Model
+// IRT 3PL (Three-Parameter Logistic) with Bayesian θ estimation
+// FSRS (Free Spaced Repetition Scheduler)
+// Weibull retention model
 
 import { logger, tracer, type Span } from '@/lib/observability'
 import { thetaToCefr, type CefrLevel } from '@/lib/types'
 
 // 1. IRT 3PL (Three-Parameter Logistic)
+// P_j(θ) = c_j + (1 - c_j) / (1 + exp(-a_j(θ - b_j)))
+// where:
+//   a_j = discrimination
+//   b_j = difficulty
+//   c_j = guessing (lower asymptote)
 
 export interface IrtItem {
   id: string
@@ -29,14 +37,13 @@ function logLikelihood(theta: number, items: IrtItem[], responses: IrtResponse[]
   for (let i = 0; i < items.length; i++) {
     const p = irtProbability(theta, items[i])
     const r = responses[i].correct ? 1 : 0
-    // Avoid log(0)
     const eps = 1e-10
     ll += r * Math.log(p + eps) + (1 - r) * Math.log(1 - p + eps)
   }
   return ll
 }
 
-// Bayesian θ estimation
+// p(θ) = N(0, 1) prior
 export interface ThetaEstimate {
   theta: number
   se: number  // standard error
@@ -137,7 +144,6 @@ export interface FsrsUpdate {
   newLapseCount: number
 }
 
-// Target retrievability (R*): 0.95 for critical vocab, 0.85 for accessory (per docs §10.2)
 const TARGET_R = 0.90
 
 export function fsrsUpdate(item: FsrsItem, review: FsrsReviewResult): FsrsUpdate {
@@ -190,6 +196,7 @@ export function fsrsUpdate(item: FsrsItem, review: FsrsReviewResult): FsrsUpdate
 }
 
 // 3. Weibull Retention Model
+// S(t) = exp(-(t/η)^β), β=0.7, η=18 → E[T] = η * Γ(1 + 1/β) ≈ 22.8 months
 const WEIBULL_BETA = 0.7
 const WEIBULL_ETA = 18  // months
 

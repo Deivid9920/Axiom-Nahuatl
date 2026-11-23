@@ -1,0 +1,88 @@
+R40 — PILOTO PRADERA CON ASSETS GLB CC0 (datos de la ronda)
+============================================================
+
+DECISIONES DEL USUARIO (cuestionario R40)
+- Motor: three.js se mantiene; cambia el pipeline de contenido (assets reales)
+- Estilo: híbrido (base low-poly + piezas héroe), referencia fotos 1+2
+- Assets: CC0 gratis (Quaternius vía espejo GitHub; Kenney verificado, no integrado)
+- Cuervo: GLB animado (pendiente: sin cuervo CC0 descargable sin registro — ver hallazgos)
+- Alcance: 1 bioma real (Pradera) para aprobación antes de escalar
+- Búho UI: sustituido por el cuervo (mascota única)
+- NÁHUATL CONGELADO: cero cambios en axiom-20260902 en esta ronda
+
+ASSETS (27 GLB, 3.9 MB, public/assets/world/meadow + LICENSES.md)
+- Quaternius Ultimate Nature: 8 árboles (5 broad/2 birch/1 willow), 2 arbustos,
+  flores, hierba, planta, 3 rocas
+- Quaternius Medieval Village: 2 casas, pozo, torre de campana, hoguera, banco,
+  barril, carreta, valla
+- Quaternius Ultimate Animated Animals: ciervo (Idle) + zorro (Walk, pasea la aldea)
+- Licencias: CC0 1.0 verificadas en fuente (quaternius.com enlaza CC0; Kenney
+  License.txt CC0). Mixos.io descartado: catálogo de interior (furniture/props).
+
+COSTE MEDIDO (SwiftShader, __d3d.stats(), lab-isla variante 1)
+- Baseline R38/R39 (primitivas): 64 calls / 17.5k tris (follow)
+- R40 follow: 144 calls / 325.5k tris · R40 world: 154 calls / 326k tris
+- App real (módulo con nodos): 184 calls / 326.7k tris
+- Nota: los árboles GLB traen ~5.8k verts c/u; 8 draw calls para toda la
+  arboleda instanciada; el salto de tris cabe de sobra en GPU real (el sandbox
+  renderiza por software a 1-2 fps, no representativo)
+
+ARQUITECTURA (patrones conservados)
+- assets.ts: AssetManager mínimo (GLTFLoader + caché; extractParts normaliza
+  a partes fusionadas por material, altura 1, base y=0; applyPalette = remapeo
+  de arte determinista por nombre de material — los GLB del espejo traen
+  baseColorFactor casi negros Green=#121F0C, Wood=#1F0E0C, metallic 0.4)
+- glbLayer.ts: builder async → { group, update(t,dt) }; degradación elegante
+  (si un GLB falla, el mundo procedural R38 queda intacto)
+- flora.ts: sampleTreeSpots exportado — el sampling es determinista y
+  COMPARTIDO: la capa GLB planta en las MISMAS posiciones (copas/hojas válidas)
+- cameraRig.ts: DOS poses — follow 34.7° (referencias del usuario) y world
+  diagonal acimut 42°/pitch 38.5° (el strip frontal de R38 era parte de la
+  queja); fit world con proyección eficaz por acimut + tope 132 empírico
+
+BUGS CORREGIDOS CON EVIDENCIA (sondas, no visibles en tsc)
+1. Normalización por-PARTE en extractParts destruía los offsets relativos:
+   las copas caían a la base del tronco y las ramas sobresalían («árboles
+   muertos»). FIX: normalización GLOBAL del modelo (una traslación/escala).
+2. Materiales Standard del glTF casi negros bajo Neutral tone mapping.
+   FIX: conversión a Lambert + paleta por nombre (35 materiales mapeados).
+3. next build contaminó .next del dev server (rutas API 404) — rm -rf .next.
+4. ENTORNO (hallazgo importante): la shell del sandbox exporta una
+   DATABASE_URL STALE (file:/home/z/my-project/db/custom.db) y bun resuelve
+   URLs file: RELATIVAS contra el CWD (no contra prisma/schema): los seeds
+   «env -u DATABASE_URL» poblaban el db del PADRE. FIX: .env con URL absoluta
+   + export explícito en la shell para seeds/server. custom.db del proyecto
+   quedó sembrado (5 usuarios; login 200 verificado).
+5. Tests legados SIN trackear de R24/R26 (billing-cadence, coordinator-r26)
+   aparecieron tras el reset y rompían tsc/build/vitest (16 fallos vs APIs
+   actuales; A/B en HEAD limpio los confirma pre-existentes). Los equivalentes
+   comprometidos (billing.test.ts, coordinator.test.ts) pasan. Archivados en
+   tests/unit/_legacy/ con LEEME (extensión .archivado).
+
+VERIFICACIÓN FINAL (×1, sólo v7 — náhuatl congelado)
+- tsc --noEmit: 0 errores
+- eslint: 0 errores (avisos pre-existentes)
+- vitest: 249/249 (idéntico al baseline R39)
+- build: OK (ƒ Proxy)
+- E2E: 18/18 (shards 11/11 + 7/7, BD reset+seed del proyecto)
+- Lógica educativa/progreso/desbloqueos/IRT: intactos (sólo capa visual)
+- Cuervo R39: API RavenRig intacta (7 estados); v2 de silueta (alas emplumadas
+  de 7 vértices, pico con gancho, cola en cuña, peto de pecho)
+- Mascota UI: Mascot3D redibujada como cuervo (paleta pizarra + ojos ámbar);
+  MascotSVG respaldo con mismas clases .mascot-* (animaciones CSS intactas);
+  textos «tecolote»→«cuervo»
+
+EVIDENCIA (download/evidencia-r40/)
+- r40-pradera-follow.png · r40-pradera-world.png (lab, día — el look piloto)
+- r40-pradera-aldea.png · r40-app-mundo.png (app real, fase noche por hora del
+  sandbox: luciérnagas + torre + ciervo + cuervo en el camino)
+- r40-zoom-*.png (diagnóstico del bug de normalización)
+- r40-src-*.png (modelos crudos de referencia durante el diagnóstico)
+
+PENDIENTE PARA LA SIGUIENTE ITERACIÓN (requiere OK del usuario)
+- Aprobación del look piloto → escalar a los 5 biomas restantes
+- Cuervo GLB: no existe CC0 descargable sin registro (Quaternius no tiene
+  aves; itch.io exige flujo NDA interactivo; Sketchfab requiere OAuth) —
+  opciones: (a) usuario compra un cuervo animado premium y lo integra la
+  máquina de 7 estados existente, (b) cuervo procedural v3
+- Nitidez world (target/fit), densidad de suelo, más fauna por bioma

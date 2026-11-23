@@ -49,7 +49,6 @@ describe('Event Bus', () => {
   })
 
   test('persisted events can be queried', async () => {
-    // Need a real user because SystemEvent.producerUserId is FK
     const user = await prisma.user.create({
       data: { email: 'event-test@example.com', passwordHash: 'hash', profile: { create: {} } },
     })

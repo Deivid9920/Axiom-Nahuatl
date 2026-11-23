@@ -1,0 +1,71 @@
+R41 — LÉMUR COMPAÑERO «Axi» (sustituye al cuervo R39/R40 por decisión del usuario)
+Asset: https://opengameart.org/content/lemur (autor NewDLC, CC0 1.0 verificado
+en la página; comentario de la entrada menciona que el original de Sketchfab
+era CC-BY 4.0 — se documenta por trazabilidad, la copia de OGA es CC0)
+Conversión: FBX→GLB con three.js 0.180 (FBXLoader+GLTFExporter) en Chromium
+headless — scripts/r41_lemur_convert.ts; saneamiento documentado en
+public/assets/world/mascot/LICENSES.md (alfa 0 invertido, emissive espurio,
+metallic 0, textura incrustada). GLB final 1.37 MB con 30 huesos y clips
+idle (1.67 s) · run (1.7 s) · AttackMelee (1.67 s) · ADefault (bind, sin uso).
+
+DECISIONES
+1. Animaciones TERRESTRES (mamífero, sin vuelo): máquina de 5 estados
+   idle · look · walk · run · celebrate (antes 7 con takeoff/fly/land).
+   La API del rig se conserva (perchTo/celebrate/update/setState/state/
+   group/dispose) para que el diff de landscape3d sea mínimo.
+2. Perchas: camina/corre SIEMPRE por el hombro del camino (nada de vuelos);
+   la duración de la carrera sigue sincronizada con el vuelo de cámara
+   (750 + dist·16 ms) — requestFocus/syncNodes disparan igual que R39.
+3. Celebración = clip AttackMelee (brazo alzado) + dos saltitos; saludo UI
+   (mood wave) reusa el mismo clip en bucle — levanta el brazo como saludo.
+4. Mascota UI (Mascot3D) usa el MISMO GLB (loadGlb clone:true con
+   SkeletonUtils + clonado de geo/materiales: el dispose del componente
+   nunca envenena la caché). Moods R17 intactos: idle→idle, wave→attack,
+   party→run + saltito, cheer→idle + vaivén. Fondo de insignia #E3DDCD +
+   border-radius 14 (el pelaje claro se perdía sobre el crema de la página).
+5. Degradación elegante: si el GLB no carga, buildLemurRig devuelve null y
+   el mundo queda sin compañero (sin mascotas sustitutas) — el resto intacto.
+6. MascotSVG de respaldo redibujado como lémur (ojos grandes, orejas
+   redondas, cola rayada con trazo discontinuo) — mismas clases .mascot-*
+   (CSS R17 intacto). Textos «cuervo»→«lémur» (saludo/celebración/racha).
+
+BUGS DE EVIDENCIA (sonda, no visibles en tsc)
+A. TEXTURA SIN CARGAR («Couldn't load texture blob:…»): la CSP del proxy
+   (connect-src 'self' ws: wss: https:) bloquea el fetch() que GLTFLoader
+   hace del blob de la textura embebida (img-src blob: no basta: fetch se
+   rige por connect-src). FIX: blob: en connect-src (documento propio,
+   riesgo nulo). Beneficia también a la fauna R40 (ciervo/zorso también
+   cargaban sin textura y nadie lo había notado).
+B. NORMALIZACIÓN MENTIROSA (lémur 1.41 u flotando +0.58 en el mundo;
+   mascota UI fuera de cuadro): Box3.setFromObject usa geometry.boundingBox
+   (bind pose local del mesh) y la cadena del GLB trae la rotación FBX Z→Y.
+   FIX: posedBoxOf() — bbox posado de r180 (SkinnedMesh.computeBoundingBox
+   → mesh.boundingBox local) con sus 8 esquinas transformadas por
+   matrixWorld. Verificado por sondeo: ANTES posedMin.y=0.576/posedH=1.409;
+   DESPUÉS pies en 0 y alto exacto (0.82 mundo / 1.22 UI).
+C. CRASH DE 1 FRAME (CatmullRomCurve3.getPoint «reading 'x'»): clampU y el
+   u del vuelo de cámara ahora blindan NaN/out-of-range (cameraRig.ts).
+D. TIMING SwiftShader: dt cap 0.05 → el tiempo de juego corre al ~10% del
+   real a 1-2 fps; la carrera de demo usa percha cercana (+0.10 de curva)
+   y las esperas de estado son activas (waitForFunction) — la llegada del
+   run largo en la app no cabe en 60 s de SwiftShader (en GPU real: ~2 s).
+
+COSTE MEDIDO (SwiftShader, no representativo en absoluto; GPU real sobra)
+- lab (21.8k tris): 56-59 calls — el lémur añade 1 draw call (1 malla
+  skinned + textura) sobre el baseline R40.
+- app real: 177 calls/328.4k tris con lémur posado; 118 calls/326.4k en
+  carrera (el swap de la capa GLB domina el conteo, no el compañero).
+
+VERIFICACIÓN
+tsc 0 · eslint 0 errores · vitest 249/249 (baseline exacto) · build OK ·
+E2E 18/18 (shards 11/11 + 7/7, BD del proyecto reset+seed, login 200
+verificado). Lógica educativa/progreso/desbloqueos/IRT intactos (el
+compañero sólo reacciona a requestFocus/syncNodes). Náhuatl CONGELADO.
+
+ENTORNO (4º reset del sandbox, reconstruido)
+.env con DATABASE_URL ABSOLUTA + CRON_SECRET + JWT_SECRET · prisma
+generate + db:push + seeds (seed/seed_r25/seed_r15 → 5 usuarios) ·
+chromium_headless_shell-1243 descargado (playwright del proyecto) ·
+tests legados billing-cadence/coordinator-r26 re-archivados en
+tests/unit/_legacy (reaparecieron sin trackear tras el reset, igual que
+en R40; excluidos de vitest y tsconfig).

@@ -9,8 +9,8 @@ describe('Billing', () => {
     test('has 4 plans with correct MXN prices', () => {
       expect(PLAN_CONFIG.basico.priceMxnCents).toBe(19900)   // $199.00
       expect(PLAN_CONFIG.pro.priceMxnCents).toBe(39900)      // $399.00
-      expect(PLAN_CONFIG.equipo.priceMxnCents).toBe(99900)   // $999.00
-      expect(PLAN_CONFIG.enterprise.priceMxnCents).toBe(299900) // $2,999.00
+      expect(PLAN_CONFIG.equipo.priceMxnCents).toBe(149000)  // $1,490.00 (R20)
+      expect(PLAN_CONFIG.enterprise.priceMxnCents).toBe(590000) // $5,900.00 desde (R20)
     })
 
     test('Básico has no RAG, no voice', () => {

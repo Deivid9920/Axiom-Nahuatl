@@ -8,6 +8,9 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().optional(),
+  // R26 — datos escolares opcionales
+  controlNumber: z.string().max(20).optional(),
+  institutionCode: z.string().max(32).optional(),
 })
 
 const loginSchema = z.object({

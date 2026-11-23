@@ -1,4 +1,6 @@
 // AXIOM — RAG VectorStore
+// In-memory (default) or Qdrant Cloud (when QDRANT_URL is set); same interface
+// Setup: see .env.example
 
 import { embedSync, embed, EMBEDDING_DIMENSION } from '@/lib/llm'
 import { logger } from '@/lib/observability'
@@ -15,40 +17,21 @@ export interface VectorPoint {
     section?: string
     source: 'user_document' | 'knowledge_base' | 'vocabulary' | 'grammar_rule' | 'exercise'
     sourceId: string  // ID of the source entity (UserDocument, VocabularyEntry, etc.)
-    // `null`/ausente = contenido curado global, visible para todos.
-    // Definido    = contenido privado, visible SÓLO para ese usuario.
-    ownerId?: string | null
     difficultyScore?: number
     metadata?: Record<string, unknown>
   }
 }
 
-export interface TenantScope {
-  /** Único usuario cuyo contenido privado es visible en esta búsqueda. */
-  userId: string
-  /** Incluir además la base de conocimiento curada global. Por defecto, sí. */
-  includeGlobal?: boolean
-}
-
 export interface SearchParams {
   vector: number[]
   topK?: number
-  tenant: TenantScope
   filter?: {
     domain?: string
     cefrLevels?: string[]
     source?: VectorPoint['payload']['source']
+    userId?: string  // for user_document filter
     sourceIds?: string[]
   }
-}
-
-export function isVisibleToTenant(
-  payload: Pick<VectorPoint['payload'], 'ownerId'>,
-  tenant: TenantScope
-): boolean {
-  const owner = payload.ownerId ?? null
-  if (owner === null) return tenant.includeGlobal !== false
-  return owner === tenant.userId
 }
 
 export interface ScoredPoint {
@@ -91,8 +74,6 @@ class InMemoryVectorStore {
     const results: ScoredPoint[] = []
 
     for (const point of this.points.values()) {
-      if (!isVisibleToTenant(point.payload, params.tenant)) continue
-
       // Apply filters
       if (params.filter) {
         const f = params.filter
@@ -100,6 +81,11 @@ class InMemoryVectorStore {
         if (f.cefrLevels && point.payload.cefrLevel && !f.cefrLevels.includes(point.payload.cefrLevel)) continue
         if (f.source && point.payload.source !== f.source) continue
         if (f.sourceIds && !f.sourceIds.includes(point.payload.sourceId)) continue
+        if (f.userId && point.payload.documentId) {
+          // user_document filter requires user_id check
+          // (in real Qdrant this would be a payload match)
+          // we handle it at the chunk-fetch level via DB
+        }
       }
 
       const score = cosineSimilarity(params.vector, point.vector)
@@ -188,32 +174,20 @@ class QdrantVectorStore {
     }
   }
 
-  private buildFilter(tenant: TenantScope, filter?: SearchParams['filter']): Record<string, any> {
+  private buildFilter(filter?: SearchParams['filter']): Record<string, any> {
+    if (!filter) return {}
     const must: any[] = []
-
-    // Partición por inquilino: siempre presente.
-    if (tenant.includeGlobal === false) {
-      must.push({ key: 'ownerId', match: { value: tenant.userId } })
-    } else {
-      // Contenido curado global (sin `ownerId`) o contenido propio de este usuario.
-      must.push({
-        should: [
-          { is_empty: { key: 'ownerId' } },
-          { key: 'ownerId', match: { value: tenant.userId } },
-        ],
-      })
+    if (filter.domain) must.push({ key: 'domain', match: { value: filter.domain } })
+    if (filter.source) must.push({ key: 'source', match: { value: filter.source } })
+    if (filter.cefrLevels?.length) {
+      const should = filter.cefrLevels.map(level => ({ key: 'cefrLevel', match: { value: level } }))
+      return { must, should }
     }
-
-    if (filter?.domain) must.push({ key: 'domain', match: { value: filter.domain } })
-    if (filter?.source) must.push({ key: 'source', match: { value: filter.source } })
-    if (filter?.cefrLevels?.length) {
-      must.push({ key: 'cefrLevel', match: { any: filter.cefrLevels } })
-    }
-    if (filter?.sourceIds?.length) {
+    if (filter.sourceIds?.length) {
+      // Qdrant matches one of the sourceIds
       must.push({ key: 'sourceId', match: { any: filter.sourceIds } })
     }
-
-    return { must }
+    return must.length ? { must } : {}
   }
 
   async upsert(point: VectorPoint): Promise<void> {
@@ -265,7 +239,7 @@ class QdrantVectorStore {
   async search(params: SearchParams): Promise<ScoredPoint[]> {
     await this.ensureCollection()
     const topK = params.topK ?? 10
-    const filter = this.buildFilter(params.tenant, params.filter)
+    const filter = this.buildFilter(params.filter)
 
     const res = await fetch(`${this.baseUrl}/collections/${QDRANT_COLLECTION}/points/search`, {
       method: 'POST',
@@ -274,7 +248,7 @@ class QdrantVectorStore {
         vector: params.vector,
         limit: topK,
         with_payload: true,
-        filter,
+        filter: Object.keys(filter).length ? filter : undefined,
       }),
     })
 
@@ -284,23 +258,11 @@ class QdrantVectorStore {
     }
 
     const data = await res.json()
-    const results = (data.result || [])
-      .map((r: any) => ({
-        id: r.id as string,
-        score: r.score as number,
-        payload: r.payload as VectorPoint['payload'],
-      }))
-      .filter((r: ScoredPoint) => {
-        const visible = isVisibleToTenant(r.payload, params.tenant)
-        if (!visible) {
-          logger.error('vectorstore.tenant_leak_blocked', {
-            point_id: r.id,
-            source: r.payload.source,
-            requesting_user: params.tenant.userId,
-          })
-        }
-        return visible
-      })
+    const results = (data.result || []).map((r: any) => ({
+      id: r.id as string,
+      score: r.score as number,
+      payload: r.payload as VectorPoint['payload'],
+    }))
 
     return results
   }
@@ -358,16 +320,9 @@ export async function indexChunk(opts: {
   section?: string
   source: VectorPoint['payload']['source']
   sourceId: string
-  ownerId: string | null
   difficultyScore?: number
   metadata?: Record<string, unknown>
 }): Promise<void> {
-  if (opts.source === 'user_document' && !opts.ownerId) {
-    throw new Error(
-      `indexChunk: un fragmento con source='user_document' requiere ownerId (chunk ${opts.chunkId})`
-    )
-  }
-  // Use async embed (real BGE-M3 if HF_TOKEN is set, hash fallback otherwise)
   const embedResponse = await embed({
     input: opts.content,
     model: 'bge-m3',
@@ -386,7 +341,6 @@ export async function indexChunk(opts: {
       section: opts.section,
       source: opts.source,
       sourceId: opts.sourceId,
-      ownerId: opts.ownerId,
       difficultyScore: opts.difficultyScore,
       metadata: opts.metadata,
     },

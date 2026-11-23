@@ -1,0 +1,229 @@
+EJECUCIÓN DEL PROYECTO AXIOM (INGLÉS PROFESIONAL)
+Guía de instalación, comandos y consejos de ejecución
+
+Este archivo reúne todo lo necesario para ejecutar el proyecto en Linux,
+macOS y Windows. La conexión a servicios externos paso a paso está en
+CONEXIONES.md.
+
+
+REQUISITOS PREVIOS
+------------------
+- Bun 1.3 o superior: instalación y ejecución (https://bun.sh)
+- Python 3.9 o superior: solo para el servicio de voz (opcional)
+- Navegador Chrome o Edge: reconocimiento de voz (Web Speech API)
+- Sistema operativo: Linux, macOS o Windows 10/11
+
+
+PUESTA EN MARCHA (LINUX / MACOS)
+--------------------------------
+1. Instalar dependencias:
+
+   bun install
+
+2. Configurar el entorno:
+
+   cp .env.example .env
+
+   Edita .env y define JWT_SECRET. Puedes generar uno con:
+
+   openssl rand -base64 48
+
+3. Crear y poblar la base de datos:
+
+   bun run db:push
+   bun run seed
+
+   "db:push" sincroniza el esquema de Prisma con SQLite. "seed" ejecuta
+   la semilla: planes de suscripción, roles y permisos, la base de
+   conocimiento por dominio profesional, los textos de lectura, los
+   textos de tecleo, los ejercicios de traducción, los temas de
+   currículo y un usuario de demostración.
+
+4. Arrancar en desarrollo:
+
+   bun run dev
+
+La aplicación queda disponible en http://localhost:3000
+
+
+PUESTA EN MARCHA (WINDOWS / POWERSHELL)
+---------------------------------------
+Los comandos de Bun son idénticos. Los pasos que difieren:
+
+1. Instalar dependencias:
+
+   bun install
+
+2. Configurar el entorno (equivalente de cp):
+
+   Copy-Item .env.example .env
+
+   Edita .env con el bloc de notas (notepad .env) y define JWT_SECRET.
+   Equivalente de "openssl rand -base64 48" en PowerShell:
+
+   [Convert]::ToBase64String((1..48 | ForEach-Object { Get-Random -Maximum 256 }))
+
+3. Crear y poblar la base de datos:
+
+   bun run db:push
+   bun run seed
+
+4. Arrancar en desarrollo:
+
+   bun run dev
+
+Nota: si PowerShell bloquea la ejecución de scripts, abre una ventana
+con: powershell -ExecutionPolicy Bypass
+Los equivalentes completos de todos los comandos están en CONEXIONES.md
+
+
+USUARIO DE DEMOSTRACIÓN
+-----------------------
+La semilla crea un usuario de prueba:
+
+   Correo:     admin@axiom.mx
+   Contraseña: axiom12345
+
+Sustituye o elimina este usuario antes de exponer la aplicación en una
+red.
+
+
+PRODUCCIÓN
+----------
+Compilar y servir la versión de producción:
+
+   bun run build
+   bun run start
+
+En producción la CSP es estricta (sin unsafe-eval) y JWT_SECRET es
+obligatorio: sin esa variable el servidor devuelve 500 al iniciar
+sesión. Defínela siempre en .env antes de compilar.
+
+
+COMANDOS DISPONIBLES
+--------------------
+Todos se ejecutan con "bun run <comando>" desde la raíz del proyecto:
+
+   dev              Servidor de desarrollo en el puerto 3000
+   build            Compilación de producción
+   start            Sirve la compilación de producción (puerto 3000)
+   lint             Análisis estático con ESLint
+   typecheck        Comprobación de tipos con TypeScript
+   test:unit        Suite unitaria (72 pruebas con Vitest)
+   test:unit:watch  Suite unitaria en modo vigilante
+   test:e2e         Pruebas extremo a extremo (Playwright)
+   test:load        Pruebas de carga (k6)
+   seed             Ejecuta la semilla manualmente
+   db:push          Sincroniza el esquema con la base de datos
+   db:generate      Regenera el cliente de Prisma
+   db:migrate       Crea y aplica migraciones en desarrollo
+   db:reset         Reinicia la base de datos
+   db:studio        Explorador visual de la base de datos (Prisma Studio)
+
+En Windows los comandos son los mismos (bun run ...).
+
+
+VARIABLES DE ENTORNO
+--------------------
+Todas las variables están documentadas en .env.example. Las principales:
+
+   DATABASE_URL                  Requerida. Ruta de SQLite relativa al
+                                 directorio prisma/; admite PostgreSQL
+   JWT_SECRET                    Producción. Firma de sesiones (mínimo
+                                 32 caracteres); el servicio de chat usa
+                                 el mismo valor
+   OPENROUTER_API_KEY            Recomendada. Inferencia real; sin ella
+                                 las funciones generativas responden 503
+   DEFAULT_MODEL                 Opcional. Modelo principal de OpenRouter
+                                 (DeepSeek V4 por defecto)
+   FALLBACK_MODEL                Opcional. Modelo de respaldo de OpenRouter
+   HF_TOKEN                      Opcional. Embeddings BGE-M3 reales; sin
+                                 ella se usa un sustituto local
+   QDRANT_URL                    Opcional. Almacén vectorial persistente;
+                                 sin ella, en memoria
+   QDRANT_API_KEY                Opcional. Clave del cluster de Qdrant
+   MERCADO_PAGO_ACCESS_TOKEN     Producción. Cobros reales
+   MP_WEBHOOK_SECRET             Producción. Verificación HMAC de webhooks
+   ENABLE_DEV_BILLING            Opcional. Billing simulado en desarrollo
+   NEXT_PUBLIC_APP_URL           Opcional. URL pública de la aplicación
+   PUBLIC_URL                    Opcional. URL pública alternativa para
+                                 enlaces y webhooks
+   ALLOWED_ORIGINS               Opcional. Orígenes autorizados para
+                                 WebSocket y el servicio de voz
+   TTS_SERVICE_URL               Opcional. URL del servicio de voz local
+   OTEL_EXPORTER_OTLP_ENDPOINT   Opcional. Exportación de trazas OTLP
+
+Importante: el archivo .env no se incluye en el repositorio ni en el
+paquete; créalo siempre a partir de .env.example.
+
+
+MINI-SERVICIOS
+--------------
+Servicios auxiliares independientes del proceso principal de Next.js.
+
+Servicio de voz (mini-services/tts-service):
+Sintetiza el audio de los ejercicios de pronunciación con Kokoro. Sin
+este servicio, la aplicación usa la voz del navegador.
+
+   cd mini-services/tts-service
+   pip install kokoro soundfile numpy
+   python server.py
+
+En Windows usa "python" o "py" si el comando "python" no está
+disponible. El servicio escucha en 127.0.0.1:3004.
+
+Servicio de chat (mini-services/chat-service):
+WebSocket sobre Socket.IO para conversación en streaming (puerto 3003).
+Verifica el JWT en la conexión, restringe los orígenes, valida los
+eventos y aplica límites de tasa y de tamaño de mensaje. Requiere la
+misma JWT_SECRET que la aplicación principal.
+
+   cd mini-services/chat-service
+   bun install
+   bun run index.ts
+
+
+FUNCIONAMIENTO SIN SERVICIOS EXTERNOS
+-------------------------------------
+El proyecto arranca y funciona sin ninguna clave externa. Cada servicio
+externo es opcional:
+
+   Base de datos          SQLite local (db/custom.db)
+   Inferencia (LLM)       Proxy de desarrollo; en producción, error 503
+                          con mensaje accionable
+   Embeddings             Sustituto local determinista de 256 dimensiones
+   Almacén vectorial      En memoria (se reinicia al detener el proceso)
+   Documentos             Sistema de archivos local
+   Síntesis de voz        Web Speech API del navegador
+   Pagos                  Modo sandbox simulado
+
+
+CONSEJOS DE EJECUCIÓN
+---------------------
+- Si el login devuelve 503 con un mensaje sobre la base de datos,
+  ejecuta "bun run db:push" y luego "bun run seed"; el mensaje indica
+  el comando exacto cuando falta la sincronización o la semilla.
+- Si el login devuelve 401, revisa que las credenciales sean las del
+  usuario de demostración y que la semilla se haya ejecutado.
+- La primera compilación puede tardar; Prisma genera el cliente durante
+  "bun install" y "db:push" sincroniza tablas de forma idempotente.
+- Para reconocimiento de voz usa Chrome o Edge; el API no existe en
+  Firefox ni en la mayoría de navegadores móviles.
+- Los pagos corren en sandbox de Mercado Pago: no hay cobros reales;
+  con ENABLE_DEV_BILLING el billing simulado funciona en desarrollo.
+- El puerto 3000 debe estar libre; si está ocupado, cierra el proceso
+  o cambia el puerto en los scripts "dev" y "start" de package.json.
+- En producción la cabecera CSP bloquea eval(): si añades librerías que
+  la requieran, revisa src/proxy.ts antes de relajar la política.
+- Los tests unitarios crean su propia base de datos temporal y no
+  tocan db/custom.db; puedes ejecutarlos sin riesgo en cualquier
+  momento.
+
+
+REFERENCIAS
+-----------
+- CONEXIONES.md: conexión a servicios externos paso a paso, con
+  equivalentes de comandos para Windows
+- docs/TDD.md: documento de diseño técnico
+- docs/SECURITY-AUDIT.md y docs/QUALITY-AUDIT.md: auditorías
+- scripts/latex/axiom-doc.pdf: documentación técnica integral

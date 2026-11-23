@@ -28,6 +28,8 @@ export async function GET(req: NextRequest) {
       currentPeriodStart: subscription.currentPeriodStart,
       currentPeriodEnd: subscription.currentPeriodEnd,
       cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
+      autoRenew: subscription.autoRenew, // R29-c
+      mercadoPagoSubscriptionId: subscription.mercadoPagoSubscriptionId, // R31-c: preaprobación MP activa
     } : null,
   })
 }

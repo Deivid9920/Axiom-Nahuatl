@@ -22,7 +22,7 @@ beforeAll(async () => {
     ? path.resolve(process.cwd(), 'node_modules', '.bin', 'prisma.CMD')
     : path.resolve(process.cwd(), 'node_modules', '.bin', 'prisma')
   try {
-    execSync(`"${prismaBin}" db push --skip-generate`, {
+    execSync(`"${prismaBin}" db push --skip-generate --accept-data-loss`, {
       env: { ...process.env }, // process.env.DATABASE_URL tiene precedencia sobre .env
       stdio: 'pipe',
     })
@@ -37,7 +37,6 @@ afterAll(async () => {
   await prisma.$disconnect()
 })
 
-// Clean critical tables between tests for isolation
 beforeEach(async () => {
   // Order matters due to FK constraints
   const tables = [
@@ -67,12 +66,16 @@ beforeEach(async () => {
     'PasswordResetToken',
     'UserRole',
     'UserProfile',
+    'GroupMember',   // R25: antes de User/Group por las FK
+    'Group',         // R25: coordinador referencia a User
+    'Institution',   // R25: sin FK hacia User, va al final de las nuevas
+    'IssuedDocument', // R27: sin FK dura hacia User, antes de User
+    'EmailLog',      // R30-b: FK a User (SetNull), antes de User
     'User',
   ]
   for (const table of tables) {
     try {
-      // Acceso por nombre de tabla en tiempo de ejecución.
-      await (prisma as unknown as Record<string, { deleteMany: (a: object) => Promise<unknown> }>)[table].deleteMany({})
+      await prisma[table].deleteMany({})
     } catch {
       // table may not exist; skip
     }

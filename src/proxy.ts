@@ -6,7 +6,7 @@ import { rateLimiter, getClientIp } from '@/lib/security/rate-limiter'
 // Routes that need special rate limiting
 const LOGIN_PATH = '/api/auth'
 const REGISTER_PATH = '/api/auth?action=register'
-const LLM_PATHS = ['/api/modules', '/api/listening', '/api/pronunciation', '/api/agents', '/api/tts']
+const LLM_PATHS = ['/api/modules', '/api/voice', '/api/agents']
 
 export function proxy(req: NextRequest) {
   const res = NextResponse.next()
@@ -23,21 +23,25 @@ export function proxy(req: NextRequest) {
   // Content-Security-Policy
   const isDev = process.env.NODE_ENV !== 'production'
   const scriptSrc = isDev
-    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
-    : "script-src 'self' 'unsafe-inline'"
+    ? "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com"
+    : "script-src 'self' 'unsafe-inline' https://fonts.googleapis.com"
   const csp = [
     "default-src 'self'",
     scriptSrc,
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com data:",
-    "img-src 'self' data: blob:",
-    "connect-src 'self' ws: wss:",
+    "img-src 'self' data: blob: https:",
+    // R41: blob: en connect-src — GLTFLoader descarga las texturas embebidas
+    // de los GLB vía fetch() de un blob URL (img-src blob: no basta: fetch se
+    // rige por connect-src). Sin esto, lémur/fauna GLB cargan SIN textura.
+    // blob: es de documento propio (sólo la página puede crearlo): riesgo nulo.
+    "connect-src 'self' ws: wss: https: blob:",
+    "worker-src 'self' blob:",
     "media-src 'self' blob:",
     "object-src 'none'",
     "base-uri 'self'",
     "frame-ancestors 'none'",
     "form-action 'self'",
-    "upgrade-insecure-requests",
   ].join('; ')
   res.headers.set('Content-Security-Policy', csp)
 
@@ -87,36 +91,23 @@ export function proxy(req: NextRequest) {
     }
   }
 
-  // LLM rate limiting
-  if (LLM_PATHS.some(p => pathname.startsWith(p))) {
-    const llmCheck = rateLimiter.checkLlm(ip)
-    if (!llmCheck.allowed) {
+  // General API rate limiting: 60 req/min per IP. Opera en producción; en
+  // desarrollo se omite para no interferir con la recarga en caliente ni con
+  // las pruebas E2E (múltiples navegaciones desde la misma IP).
+  if (process.env.NODE_ENV === 'production') {
+    const apiCheck = rateLimiter.checkApi(ip)
+    if (!apiCheck.allowed) {
       return NextResponse.json(
-        { error: 'Límite de peticiones de IA excedido. Espera un momento antes de continuar.' },
+        { error: 'Límite de peticiones excedido. Intenta más tarde.' },
         {
           status: 429,
           headers: {
-            'Retry-After': String(llmCheck.retryAfter),
+            'Retry-After': String(apiCheck.retryAfter),
             'X-Content-Type-Options': 'nosniff',
           }
         }
       )
     }
-  }
-
-  // General API rate limiting: 60 req/min per IP
-  const apiCheck = rateLimiter.checkApi(ip)
-  if (!apiCheck.allowed) {
-    return NextResponse.json(
-      { error: 'Límite de peticiones excedido. Intenta más tarde.' },
-      {
-        status: 429,
-        headers: {
-          'Retry-After': String(apiCheck.retryAfter),
-          'X-Content-Type-Options': 'nosniff',
-        }
-      }
-    )
   }
 
   return res

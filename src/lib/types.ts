@@ -1,13 +1,14 @@
 // AXIOM — Centralized type definitions
 
 // RBAC
-export const ROLES = ['STUDENT', 'ADMIN'] as const
+export const ROLES = ['STUDENT', 'COORDINADOR', 'MAESTRO', 'ADMIN'] as const
 export type Role = typeof ROLES[number]
 
 export const PERMISSIONS = [
-  // Module access — la plataforma cubre ESCUCHA y PRONUNCIACIÓN.
-  'module.listening.use',
-  'module.pronunciation.use',
+  // Module access
+  'module.conversation.use',
+  'module.text.use',
+  'module.voice.use',
   // RAG
   'rag.documents.upload',
   'rag.documents.read',
@@ -23,6 +24,14 @@ export const PERMISSIONS = [
   'billing.subscriptions.read',
   'billing.subscriptions.write',
   'billing.payments.read',
+  // Grupos (R25 — coordinación)
+  'groups.read',
+  'groups.manage',
+  'groups.progress.read',
+  // R26 — verificación de instituciones escolares (sólo ADMIN)
+  'institutions.verify',
+  // R28 — revocación de documentos emitidos (sólo ADMIN)
+  'documents.revoke',
   // Admin
   'admin.users.read',
   'admin.users.write',
@@ -42,8 +51,9 @@ export type Permission = typeof PERMISSIONS[number]
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   STUDENT: [
-    'module.listening.use',
-    'module.pronunciation.use',
+    'module.conversation.use',
+    'module.text.use',
+    'module.voice.use',
     'rag.documents.upload',
     'rag.documents.read',
     'rag.documents.delete',
@@ -57,8 +67,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ADMIN: [
     // Admins get everything
     ...([
-      'module.listening.use',
-      'module.pronunciation.use',
+      'module.conversation.use',
+      'module.text.use',
+      'module.voice.use',
       'rag.documents.upload',
       'rag.documents.read',
       'rag.documents.delete',
@@ -71,6 +82,11 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
       'billing.subscriptions.read',
       'billing.subscriptions.write',
       'billing.payments.read',
+      'groups.read',
+      'groups.manage',
+      'groups.progress.read',
+      'institutions.verify',
+      'documents.revoke',
       'admin.users.read',
       'admin.users.write',
       'admin.plans.read',
@@ -85,13 +101,48 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
       'system.events.consume',
     ] as Permission[]),
   ],
+  // R25 — Coordinador: gestiona grupos e instituciones (panel de coordinación), ve el progreso de sus miembros
+  COORDINADOR: [
+    'module.conversation.use',
+    'module.text.use',
+    'module.voice.use',
+    'rag.documents.upload',
+    'rag.documents.read',
+    'rag.documents.delete',
+    'rag.retrieve',
+    'agent.ai_tutor.dispatch',
+    'agent.learning.dispatch',
+    'billing.subscriptions.read',
+    'billing.payments.read',
+    'groups.read',
+    'groups.manage',
+    'groups.progress.read',
+    'system.events.emit',
+  ],
+  // R25 — Maestro: observación de sólo lectura de los grupos donde participa (sin gestión)
+  MAESTRO: [
+    'module.conversation.use',
+    'module.text.use',
+    'module.voice.use',
+    'rag.documents.upload',
+    'rag.documents.read',
+    'rag.documents.delete',
+    'rag.retrieve',
+    'agent.ai_tutor.dispatch',
+    'agent.learning.dispatch',
+    'billing.subscriptions.read',
+    'billing.payments.read',
+    'groups.read',
+    'groups.progress.read',
+    'system.events.emit',
+  ],
 }
 
 // CEFR Levels
 export const CEFR_LEVELS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'] as const
 export type CefrLevel = typeof CEFR_LEVELS[number]
 
-// IRT theta → CEFR mapping (per docs Ch. 10)
+// IRT theta → CEFR mapping
 export const THETA_TO_CEFR: { min: number; level: CefrLevel }[] = [
   { min: -3.0, level: 'A1' },
   { min: -2.0, level: 'A2' },
@@ -168,53 +219,38 @@ export const LEARNING_MODE_CONFIG: Record<LearningMode, {
   },
 }
 
-// Modules (sólo habilidades orales: listening y pronunciation)
-export const MODULES = ['listening', 'pronunciation'] as const
+// Modules
+export const MODULES = ['conversation', 'text', 'voice', 'typing', 'translation', 'reading'] as const
 export type Module = typeof MODULES[number]
 
-/** Comprensión auditiva: el usuario ESCUCHA y demuestra que entendió. */
-export const LISTENING_MODES = [
-  'comprension_guiada',   // audio corto + preguntas de comprensión
-  'dictado',              // audio → transcripción del usuario
-  'discriminacion',       // distinguir pares mínimos (tl/t, tz/s, ch/x)
-] as const
-export type ListeningMode = typeof LISTENING_MODES[number]
+export const CONVERSATION_MODES = ['technical_interview', 'casual', 'reinforcement'] as const
+export type ConversationMode = typeof CONVERSATION_MODES[number]
 
-/** Pronunciación: el usuario HABLA y recibe retroalimentación fonética. */
-export const PRONUNCIATION_MODES = [
-  'lectura_en_voz_alta',  // leer un texto y ser evaluado
-  'repeticion',           // escuchar un modelo y repetirlo
-  'fonema_dirigido',      // practicar un fonema concreto del náhuatl
-] as const
-export type PronunciationMode = typeof PRONUNCIATION_MODES[number]
+export const TEXT_MODES = ['writing', 'translation', 'professional_writing'] as const
+export type TextMode = typeof TEXT_MODES[number]
 
-export type AnyMode = ListeningMode | PronunciationMode
+export const VOICE_MODES = ['reading_pronunciation'] as const
+export type VoiceMode = typeof VOICE_MODES[number]
 
-export const MODULE_MODES: Record<Module, readonly string[]> = {
-  listening: LISTENING_MODES,
-  pronunciation: PRONUNCIATION_MODES,
-}
+export const TYPING_MODES = ['general', 'technical', 'business'] as const
+export type TypingMode = typeof TYPING_MODES[number]
 
-/** Etiquetas de interfaz en español. */
-export const MODULE_LABELS: Record<Module, { title: string; tagline: string }> = {
-  listening: {
-    title: 'Escucha',
-    tagline: 'Entrena el oído con audio en náhuatl y comprueba tu comprensión.',
-  },
-  pronunciation: {
-    title: 'Pronunciación',
-    tagline: 'Habla en náhuatl y recibe retroalimentación fonética inmediata.',
-  },
-}
+export const TRANSLATION_MODES = ['es_to_en', 'en_to_es'] as const
+export type TranslationMode = typeof TRANSLATION_MODES[number]
 
-// Cultural / Thematic Domains (náhuatl)
+export const READING_MODES = ['comprehension', 'pronunciation'] as const
+export type ReadingMode = typeof READING_MODES[number]
+
+export type AnyMode = ConversationMode | TextMode | VoiceMode | TypingMode | TranslationMode | ReadingMode
+
+// Professional Domains
 export const DOMAINS = [
-  'vida_cotidiana',
-  'naturaleza',
-  'familia_comunidad',
-  'tradiciones',
-  'comida',
-  'comercio',
+  'software_engineering',
+  'finance',
+  'manufacturing',
+  'legal',
+  'medical',
+  'marketing',
 ] as const
 export type Domain = typeof DOMAINS[number]
 
@@ -228,7 +264,7 @@ export const AGENT_TYPES = [
 ] as const
 export type AgentType = typeof AGENT_TYPES[number]
 
-// System Events (per TDD §2.8)
+// System Events
 export const SYSTEM_EVENTS = [
   'USER_REGISTERED',
   'USER_LOGGED_IN',

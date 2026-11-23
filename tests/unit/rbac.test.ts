@@ -8,8 +8,9 @@ describe('RBAC', () => {
   describe('ROLE_PERMISSIONS static map', () => {
     test('STUDENT has limited module access', () => {
       const studentPerms = ROLE_PERMISSIONS.STUDENT
-      expect(studentPerms).toContain('module.listening.use')
-      expect(studentPerms).toContain('module.pronunciation.use')
+      expect(studentPerms).toContain('module.conversation.use')
+      expect(studentPerms).toContain('module.text.use')
+      expect(studentPerms).toContain('module.voice.use')
     })
 
     test('STUDENT cannot access admin endpoints', () => {
@@ -21,7 +22,7 @@ describe('RBAC', () => {
 
     test('ADMIN has all permissions', () => {
       const adminPerms = ROLE_PERMISSIONS.ADMIN
-      expect(adminPerms).toContain('module.listening.use')
+      expect(adminPerms).toContain('module.conversation.use')
       expect(adminPerms).toContain('admin.users.read')
       expect(adminPerms).toContain('admin.flags.write')
       expect(adminPerms).toContain('agent.engineering.dispatch')
@@ -39,7 +40,7 @@ describe('RBAC', () => {
 
   describe('hasPermission', () => {
     test('returns true when role has permission', () => {
-      expect(hasPermission(['STUDENT'], 'module.listening.use')).toBe(true)
+      expect(hasPermission(['STUDENT'], 'module.conversation.use')).toBe(true)
     })
 
     test('returns false when role lacks permission', () => {
@@ -48,7 +49,7 @@ describe('RBAC', () => {
 
     test('ADMIN role has all permissions', () => {
       const allPerms: Permission[] = [
-        'module.listening.use',
+        'module.conversation.use',
         'admin.users.read',
         'admin.plans.write',
         'agent.engineering.dispatch',
@@ -61,18 +62,18 @@ describe('RBAC', () => {
 
     test('multiple roles: union of permissions', () => {
       // User with both STUDENT and ADMIN should have STUDENT perms + ADMIN perms
-      expect(hasPermission(['STUDENT', 'ADMIN'], 'module.listening.use')).toBe(true)
+      expect(hasPermission(['STUDENT', 'ADMIN'], 'module.conversation.use')).toBe(true)
       expect(hasPermission(['STUDENT', 'ADMIN'], 'admin.users.read')).toBe(true)
     })
 
     test('empty roles has no permissions', () => {
-      expect(hasPermission([], 'module.listening.use')).toBe(false)
+      expect(hasPermission([], 'module.conversation.use')).toBe(false)
     })
   })
 
   describe('hasAnyPermission', () => {
     test('returns true if any permission matches', () => {
-      expect(hasAnyPermission(['STUDENT'], ['module.listening.use', 'admin.users.read'])).toBe(true)
+      expect(hasAnyPermission(['STUDENT'], ['module.conversation.use', 'admin.users.read'])).toBe(true)
     })
 
     test('returns false if no permission matches', () => {
@@ -88,7 +89,6 @@ describe('RBAC', () => {
     })
 
     test('can create user with role', async () => {
-      // Use upsert to avoid unique constraint conflicts across tests
       const role = await prisma.role.upsert({
         where: { name: 'TEST_ROLE' },
         create: { name: 'TEST_ROLE', description: 'Test role' },

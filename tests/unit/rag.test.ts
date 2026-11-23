@@ -3,9 +3,6 @@ import { describe, test, expect, beforeEach } from 'vitest'
 import { getVectorStore, indexChunk, cosineSimilarity, EMBEDDING_DIMENSION } from '@/lib/rag/vector-store'
 import { embedSync } from '@/lib/llm'
 
-const TENANT_A = { userId: 'user-a', includeGlobal: true }
-const TENANT_B = { userId: 'user-b', includeGlobal: true }
-
 describe('VectorStore', () => {
   beforeEach(() => {
     getVectorStore().clear()
@@ -38,14 +35,12 @@ describe('VectorStore', () => {
       cefrLevel: 'B1',
       source: 'vocabulary',
       sourceId: 'vocab1',
-      ownerId: null,
     })
 
     const queryVec = embedSync('pull request review')
     const results = await getVectorStore().search({
       vector: queryVec,
       topK: 5,
-      tenant: TENANT_A,
     })
 
     expect(results.length).toBeGreaterThan(0)
@@ -59,7 +54,6 @@ describe('VectorStore', () => {
       domain: 'software_engineering',
       source: 'vocabulary',
       sourceId: 'v1',
-      ownerId: null,
     })
     await indexChunk({
       chunkId: 'fin1',
@@ -67,14 +61,12 @@ describe('VectorStore', () => {
       domain: 'finance',
       source: 'vocabulary',
       sourceId: 'v2',
-      ownerId: null,
     })
 
     const queryVec = embedSync('deploy the code')
     const results = await getVectorStore().search({
       vector: queryVec,
       topK: 10,
-      tenant: TENANT_A,
       filter: { domain: 'finance' },
     })
 
@@ -90,7 +82,6 @@ describe('VectorStore', () => {
       cefrLevel: 'A1',
       source: 'vocabulary',
       sourceId: 'v1',
-      ownerId: null,
     })
     await indexChunk({
       chunkId: 'c1',
@@ -99,14 +90,12 @@ describe('VectorStore', () => {
       cefrLevel: 'C1',
       source: 'vocabulary',
       sourceId: 'v2',
-      ownerId: null,
     })
 
     const queryVec = embedSync('hello world')
     const results = await getVectorStore().search({
       vector: queryVec,
       topK: 10,
-      tenant: TENANT_A,
       filter: { cefrLevels: ['A1', 'A2'] },
     })
 
@@ -120,7 +109,6 @@ describe('VectorStore', () => {
       documentId: 'doc1',
       source: 'user_document',
       sourceId: 'doc1',
-      ownerId: 'user-a',
     })
     await indexChunk({
       chunkId: 'c2',
@@ -128,7 +116,6 @@ describe('VectorStore', () => {
       documentId: 'doc1',
       source: 'user_document',
       sourceId: 'doc1',
-      ownerId: 'user-a',
     })
     await indexChunk({
       chunkId: 'c3',
@@ -136,11 +123,10 @@ describe('VectorStore', () => {
       documentId: 'doc2',
       source: 'user_document',
       sourceId: 'doc2',
-      ownerId: 'user-a',
     })
 
     await getVectorStore().deleteByDocumentId('doc1')
-    const all = await getVectorStore().search({ vector: embedSync('chunk'), topK: 100, tenant: TENANT_A })
+    const all = await getVectorStore().search({ vector: embedSync('chunk'), topK: 100 })
     const docIds = new Set(all.map(r => r.payload.documentId))
     expect(docIds.has('doc1')).toBe(false)
     expect(docIds.has('doc2')).toBe(true)
@@ -153,92 +139,14 @@ describe('VectorStore', () => {
         content: `test chunk ${i} with words`,
         source: 'vocabulary',
         sourceId: `v${i}`,
-        ownerId: null,
       })
     }
 
     const results = await getVectorStore().search({
       vector: embedSync('test chunk'),
       topK: 5,
-      tenant: TENANT_A,
     })
     expect(results.length).toBe(5)
-  })
-
-  test('un documento de usuario NO es visible para otro usuario', async () => {
-    await indexChunk({
-      chunkId: 'privado-a',
-      content: 'mi contraseña del banco es secreta y confidencial',
-      documentId: 'doc-a',
-      source: 'user_document',
-      sourceId: 'doc-a',
-      ownerId: 'user-a',
-    })
-
-    const queryVec = embedSync('contraseña del banco secreta confidencial')
-
-    const propio = await getVectorStore().search({ vector: queryVec, topK: 10, tenant: TENANT_A })
-    expect(propio.map(r => r.payload.chunkId)).toContain('privado-a')
-
-    const ajeno = await getVectorStore().search({ vector: queryVec, topK: 10, tenant: TENANT_B })
-    expect(ajeno.map(r => r.payload.chunkId)).not.toContain('privado-a')
-    expect(ajeno.length).toBe(0)
-  })
-
-  test('la base de conocimiento curada sí es visible para todos', async () => {
-    await indexChunk({
-      chunkId: 'curado',
-      content: 'tlahtolli significa palabra en náhuatl',
-      source: 'vocabulary',
-      sourceId: 'v-curado',
-      ownerId: null,
-    })
-
-    const queryVec = embedSync('tlahtolli palabra náhuatl')
-
-    for (const tenant of [TENANT_A, TENANT_B]) {
-      const results = await getVectorStore().search({ vector: queryVec, topK: 10, tenant })
-      expect(results.map(r => r.payload.chunkId)).toContain('curado')
-    }
-  })
-
-  test('includeGlobal:false deja fuera la base curada', async () => {
-    await indexChunk({
-      chunkId: 'curado',
-      content: 'contenido curado global',
-      source: 'vocabulary',
-      sourceId: 'v-curado',
-      ownerId: null,
-    })
-    await indexChunk({
-      chunkId: 'propio',
-      content: 'contenido curado global',
-      documentId: 'doc-a',
-      source: 'user_document',
-      sourceId: 'doc-a',
-      ownerId: 'user-a',
-    })
-
-    const results = await getVectorStore().search({
-      vector: embedSync('contenido curado global'),
-      topK: 10,
-      tenant: { userId: 'user-a', includeGlobal: false },
-    })
-
-    expect(results.map(r => r.payload.chunkId)).toEqual(['propio'])
-  })
-
-  test('indexChunk rechaza un documento de usuario sin propietario', async () => {
-    await expect(
-      indexChunk({
-        chunkId: 'huerfano',
-        content: 'documento sin dueño',
-        documentId: 'doc-x',
-        source: 'user_document',
-        sourceId: 'doc-x',
-        ownerId: null,
-      })
-    ).rejects.toThrow(/ownerId/)
   })
 
   test('results are sorted by score descending', async () => {
@@ -247,20 +155,17 @@ describe('VectorStore', () => {
       content: 'deploy to production',
       source: 'vocabulary',
       sourceId: 'v1',
-      ownerId: null,
     })
     await indexChunk({
       chunkId: 'different',
       content: 'cooking recipes italian',
       source: 'vocabulary',
       sourceId: 'v2',
-      ownerId: null,
     })
 
     const results = await getVectorStore().search({
       vector: embedSync('deploy to production'),
       topK: 5,
-      tenant: TENANT_A,
     })
 
     for (let i = 1; i < results.length; i++) {

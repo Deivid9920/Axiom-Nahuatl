@@ -1,4 +1,7 @@
 // AXIOM — LLM Abstraction Layer
+// Hybrid: OpenRouter (real, when OPENROUTER_API_KEY is set) OR z-ai-web-dev-sdk (dev proxy).
+// The interface is identical — only the underlying client changes.
+// See .env.example for setup instructions.
 
 import ZAI from 'z-ai-web-dev-sdk'
 import { logger, recordMetric, tracer, type Span } from '@/lib/observability'
@@ -164,25 +167,9 @@ async function* openRouterStreamChat(req: ChatCompletionRequest): AsyncGenerator
 // Dev proxy client (z-ai-web-dev-sdk) — for sandbox/development without API key
 let zaiClient: any = null
 
-export class LlmNotConfiguredError extends Error {
-  readonly code = 'LLM_NOT_CONFIGURED'
-  constructor() {
-    super(
-      'No hay proveedor de IA configurado. Define OPENROUTER_API_KEY en .env ' +
-      '(ver .env.example). El proxy de desarrollo z-ai-web-dev-sdk requiere un ' +
-      'archivo .z-ai-config que no forma parte del repositorio.'
-    )
-    this.name = 'LlmNotConfiguredError'
-  }
-}
-
 async function getZaiClient() {
   if (zaiClient) return zaiClient
-  try {
-    zaiClient = await ZAI.create()
-  } catch {
-    throw new LlmNotConfiguredError()
-  }
+  zaiClient = await ZAI.create()
   return zaiClient
 }
 
@@ -302,6 +289,8 @@ export async function* streamChat(req: ChatCompletionRequest, parentSpan?: Span)
 }
 
 // Embeddings (BGE-M3)
+// When HF_TOKEN is set, calls HuggingFace Inference API for real BGE-M3 embeddings.
+// Otherwise, falls back to hash-based mock embeddings (256 dims).
 export interface EmbeddingRequest {
   input: string | string[]
   model?: string
@@ -356,7 +345,6 @@ async function realEmbed(text: string): Promise<number[]> {
   })
 
   if (!response.ok) {
-    // Fallback to hash if HF fails
     logger.warn('embed.huggingface_failed', { status: response.status, fallback: 'hash' })
     return hashToVector(text)
   }
@@ -377,7 +365,6 @@ export async function embed(req: EmbeddingRequest): Promise<EmbeddingResponse> {
     return { data, model: 'bge-m3-hf', usage: { promptTokens, totalTokens: promptTokens } }
   }
 
-  // Fallback: hash-based mock embeddings
   const data = inputs.map((text, index) => ({ embedding: hashToVector(text), index }))
   const promptTokens = inputs.reduce((s, t) => s + estimateTokens(t), 0)
   return { data, model: 'bge-m3-local-mock', usage: { promptTokens, totalTokens: promptTokens } }

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AXIOM · Isla del Conocimiento</title>
+<style>
+  :root{ --card:rgba(17,20,28,.86); --line:rgba(255,255,255,.10); --blue:#5aa9ff; --ok:#6fd08c; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#a9a3b8;font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  canvas{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;color:#eef1f6;backdrop-filter:blur(8px)}
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+  #title{position:absolute;top:16px;left:16px;padding:12px 16px}
+  #title h1{font-size:20px;letter-spacing:.3px}
+  #title h1 b{color:#fff}
+  #title h1 span{color:var(--blue)}
+  #title p{font-size:11.5px;color:#aeb6c6;margin-top:3px}
+  #chips{position:absolute;top:16px;right:16px;display:flex;gap:10px}
+  .chip{padding:10px 14px;font-size:13px;font-weight:600;white-space:nowrap}
+  .chip small{font-weight:500;color:#aeb6c6;margin-left:6px}
+  #nodos b{color:#ffc861;font-size:15px}
+  #help{position:absolute;left:16px;bottom:16px;padding:12px 14px;font-size:12.5px;line-height:2.05;color:#cfd5e1;max-width:330px}
+  #help kbd{display:inline-block;min-width:26px;text-align:center;padding:2px 7px;margin-right:7px;border-radius:7px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 11.5px/1.4 ui-monospace,monospace}
+  #help .sep{border-top:1px solid var(--line);margin:6px 0}
+  #prompt{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);padding:10px 16px;font-size:13.5px;display:none}
+  #prompt kbd{margin-right:8px}
+  #modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9;background:rgba(8,10,16,.45)}
+  #modal .box{width:min(480px,92vw);padding:22px 24px}
+  #modal h2{font-size:19px;color:#fff;margin-bottom:4px}
+  #modal .tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--blue);font-weight:700}
+  #modal p{font-size:14px;line-height:1.65;color:#d7dce6;margin:12px 0 16px}
+  #modal .tip{font-size:12.5px;color:#ffc861;background:rgba(255,200,97,.08);border:1px solid rgba(255,200,97,.25);border-radius:9px;padding:9px 11px;margin-bottom:16px}
+  #modal button{pointer-events:auto;cursor:pointer;width:100%;padding:11px;border:0;border-radius:10px;background:var(--blue);color:#08131f;font-weight:700;font-size:14px}
+  #modal button:hover{filter:brightness(1.1)}
+  #err{position:fixed;left:12px;top:12px;right:12px;z-index:99;display:none;background:#5c1620;color:#ffd9d9;border:1px solid #a33;border-radius:10px;padding:10px 14px;font:12.5px/1.5 ui-monospace,monospace;white-space:pre-wrap}
+  @media (max-width:760px){ #help{display:none} #title p{display:none} }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="title" class="card">
+    <h1><b>AXIOM</b> <span>· Isla del Conocimiento</span></h1>
+    <p id="sub">Prototipo jugable — three.js r180 · 3 niveles · montaña real</p>
+  </div>
+  <div id="chips">
+    <div class="chip card" id="nodos">Nodos <b>0/7</b><small>(E)</small></div>
+    <div class="chip card" id="btnNoche">Noche <small>(N)</small></div>
+    <div class="chip card" id="btnCam">Cámara: libre <small>(C)</small></div>
+  </div>
+  <div id="help" class="card">
+    <div><kbd>Arrastrar</kbd> girar cámara · <kbd>Rueda</kbd> zoom</div>
+    <div><kbd>Shift</kbd>+arrastrar &nbsp;mover mapa</div>
+    <div class="sep"></div>
+    <div><kbd>W A S D</kbd> mover al lémur · <kbd>Shift</kbd> correr</div>
+    <div><kbd>Espacio</kbd> saltar</div>
+    <div class="sep"></div>
+    <div><kbd>E</kbd> abrir nodo cercano · <kbd>N</kbd> día/noche · <kbd>C</kbd> cámara seguir</div>
+  </div>
+  <div id="prompt" class="card"><kbd>E</kbd><span id="promptTxt">Abrir nodo</span></div>
+</div>
+<div id="modal"><div class="box card">
+  <div class="tag" id="mTag">Nodo de conocimiento</div>
+  <h2 id="mTitle">—</h2>
+  <p id="mBody">—</p>
+  <div class="tip" id="mTip">—</div>
+  <button id="mBtn">Entendido · cerrar (E)</button>
+</div></div>
+<div id="err"></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+window.__err = null;
+window.addEventListener('error', e => {
+  window.__err = (e.message||'error') + ' @' + (e.filename||'').split('/').pop() + ':' + (e.lineno||'?');
+  const d = document.getElementById('err'); d.style.display='block'; d.textContent = '⚠ ' + window.__err;
+});

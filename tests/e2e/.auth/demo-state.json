@@ -1,0 +1,39 @@
+{
+  "cookies": [
+    {
+      "name": "ax_access",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGF4aW9tLm14Iiwicm9sZXMiOlsiQURNSU4iLCJDT09SRElOQURPUiJdLCJ0eXBlIjoiYWNjZXNzIiwic3ViIjoiY212NzY4ZnJpMDAzY3RrbHpxY2dicTh3cCIsImp0aSI6IjRkNmE4MWFkLTY0ZjAtNDU5Yy04YmMwLTQ3MGIzZDA5YTQ0ZCIsImlhdCI6MTc5MTkyOTYzNCwiZXhwIjoxNzkxOTMwNTM0fQ.pVJqcruDPvUqAoDS6iMMXte9xv-KURfrMsf9eCuBA00",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1791930535.065028,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "ax_refresh",
+      "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGF4aW9tLm14Iiwicm9sZXMiOlsiQURNSU4iLCJDT09SRElOQURPUiJdLCJ0eXBlIjoicmVmcmVzaCIsInN1YiI6ImNtdjc2OGZyaTAwM2N0a2x6cWNnYnE4d3AiLCJqdGkiOiJiZTZkZjZhYS01ODQ0LTRiYTktYjQ1ZS00ZDFhODVhNzU2MDMiLCJpYXQiOjE3OTE5Mjk2MzQsImV4cCI6MTc5MjUzNDQzNH0.3ahZHA9S3Qj52nimQ0raBShL4goxbHqSHApMLTDMerg",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1792534435.065151,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "axiom-onboarding-done",
+          "value": "true"
+        },
+        {
+          "name": "axiom-theme",
+          "value": "light"
+        }
+      ]
+    }
+  ]
+}

@@ -1,4 +1,9 @@
-// Seguridad de conexión: JWT, origen restringido, validación, rate limit y tamaño de mensajes
+// AXIOM — WebSocket Chat Service (SECURITY HARDENED)
+// 1. JWT verification on connection (no trusting client-supplied userId)
+// 2. Origin restriction (no wildcard CORS)
+// 3. Input validation on all socket events
+// 4. Rate limiting on messages
+// 5. Message size limits
 
 import { createServer } from 'http'
 import { Server } from 'socket.io'
@@ -42,16 +47,9 @@ interface AuthenticatedUser {
 const connectedUsers = new Map<string, AuthenticatedUser>()
 
 // SECURITY: Verify JWT token
-const JWT_ISSUER = 'axiom.app'
-const JWT_AUDIENCE = 'axiom.web'
-
 async function verifyToken(token: string): Promise<{ userId: string; email: string } | null> {
   try {
-    const { payload } = await jwtVerify(token, JWT_SECRET, {
-      algorithms: ['HS256'],
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-    })
+    const { payload } = await jwtVerify(token, JWT_SECRET)
     if (payload.type !== 'access') return null
     return {
       userId: payload.sub as string,

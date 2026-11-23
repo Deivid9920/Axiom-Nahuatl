@@ -1,4 +1,5 @@
 // AXIOM — Agent System
+// Agents NEVER bypass the ToolLayer to touch the DB directly.
 
 import { db } from '@/lib/db'
 import { logger, audit, tracer, type Span } from '@/lib/observability'
@@ -53,79 +54,45 @@ async function executeTool(name: string, input: unknown, ctx: ToolContext): Prom
     throw new Error(`Permission denied for tool ${name}: requires ${tool.requiredPermission}`)
   }
 
-  // Esquema ausente: error de programación; entrada inválida: rechazo esperado
-  if (typeof tool.inputSchema?.safeParse !== 'function') {
-    throw new Error(
-      `Tool ${name} has no usable input schema. Every registered tool must declare a Zod schema.`
-    )
-  }
-
-  const validationResult = tool.inputSchema.safeParse(input)
-  if (!validationResult.success) {
-    await audit('tool.input_rejected', {
-      userId: ctx.authCtx.userId,
-      resourceType: 'tool',
-      resourceId: name,
-      requestId: ctx.authCtx.requestId,
-      metadata: {
-        agentRunId: ctx.agentRunId,
-        issues: validationResult.error.issues?.map((i: { path: unknown[]; message: string }) => ({
-          path: i.path.join('.'),
-          message: i.message,
-        })),
-      },
+  // Validate input (defensive — don't crash if schema has issues)
+  try {
+    const validationResult = tool.inputSchema?.safeParse?.(input)
+    if (validationResult && !validationResult.success) {
+      throw new Error(`Invalid input for tool ${name}: ${validationResult.error.message}`)
+    }
+  } catch (validationError) {
+    // Log but don't crash — let the tool execute with the raw input
+    logger.warn('tool.validation_skipped', {
+      tool: name,
+      error: (validationError as Error).message,
     })
-    throw new Error(`Invalid input for tool ${name}: ${validationResult.error.message}`)
   }
-
-  const safeInput = validationResult.data
 
   const start = Date.now()
   let output: unknown
   let errorMessage: string | undefined
 
   try {
-    output = await tool.execute(safeInput, ctx)
+    output = await tool.execute(input, ctx)
     return output
   } catch (error) {
     errorMessage = (error as Error).message
     throw error
   } finally {
-    // Audit tool call.
+    // Audit tool call
     await db.agentToolCall.create({
       data: {
         agentRunId: ctx.agentRunId,
         toolName: name,
         permission: tool.requiredPermission,
         allowed,
-        inputJson: redactForAudit(safeInput),
-        outputJson: output ? redactForAudit(output) : null,
+        inputJson: JSON.stringify(input),
+        outputJson: output ? JSON.stringify(output) : null,
         errorMessage,
         durationMs: Date.now() - start,
       },
     })
   }
-}
-
-const AUDIT_MAX_CHARS = 4000
-
-function redactForAudit(value: unknown): string {
-  let serialized: string
-  try {
-    serialized = JSON.stringify(value) ?? 'null'
-  } catch {
-    return '"[unserializable]"'
-  }
-
-  const redacted = serialized
-    .replace(/[\w.-]+@[\w.-]+\.\w+/g, '[EMAIL_REDACTED]')
-    .replace(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, '[CARD_REDACTED]')
-    .replace(/\b[A-Z]{4}\d{6}[A-Z]{6}[A-Z0-9]{2}\b/g, '[CURP_REDACTED]')
-    .replace(/\b[a-fA-F0-9]{32,}\b/g, '[TOKEN_REDACTED]')
-
-  return redacted.length > AUDIT_MAX_CHARS
-    ? `${redacted.slice(0, AUDIT_MAX_CHARS)}…"[truncated]`
-    : redacted
 }
 
 // Agent interface

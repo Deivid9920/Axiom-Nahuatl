@@ -1,4 +1,6 @@
 // AXIOM — Dual Memory Architecture
+// Short-term: in-memory map keyed by session_id (TTL 30 min)
+// Long-term: AgentMemory table
 
 import { db } from '@/lib/db'
 import { logger, tracer, type Span } from '@/lib/observability'
@@ -77,7 +79,6 @@ class ShortTermMemory {
 
 const shortTermMemory = new ShortTermMemory()
 
-// Long-term memory (AgentMemory)
 export interface AgentMemoryEntry {
   id: string
   agentType: AgentType
@@ -149,6 +150,7 @@ export async function readLongTermMemory(opts: {
   )
 }
 
+// Memory Processor
 export interface CompressedContext {
   systemPrompt: string
   recentMessages: { role: string; content: string }[]  // last N (configurable)

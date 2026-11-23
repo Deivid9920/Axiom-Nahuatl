@@ -1,4 +1,5 @@
 // AXIOM — Event-Driven Design
+// 15 system events; in-process bus + SystemEvent table for audit/replay
 
 import { db } from '@/lib/db'
 import { logger, audit, tracer, type Span } from '@/lib/observability'
@@ -37,6 +38,7 @@ class EventBus extends EventEmitter {
           },
         })
 
+        // 2. Emit to in-process subscribers
         try {
           this.emit(opts.name, {
             eventId: record.id,

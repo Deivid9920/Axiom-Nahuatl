@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { cookies } from 'next/headers'
 import { z } from 'zod'
 import { requirePermission } from '@/lib/auth'
-import { rateLimiter } from '@/lib/security/rate-limiter'
 
 // POST: Generate TTS audio via Kokoro service
 // Proxies to the Python mini-service on port 3004
 export async function POST(req: NextRequest) {
-  const authCheck = await requirePermission('module.listening.use')
+  const authCheck = await requirePermission('module.voice.use')
   if (!authCheck.ok) {
     return NextResponse.json({ error: authCheck.message }, { status: authCheck.status })
-  }
-  const { ctx } = authCheck
-
-  const ttsRate = rateLimiter.checkLlm(ctx.userId)
-  if (!ttsRate.allowed) {
-    return NextResponse.json(
-      { error: 'Demasiadas peticiones de audio. Espera un momento.' },
-      { status: 429, headers: { 'Retry-After': String(ttsRate.retryAfter) } }
-    )
   }
 
   let body
@@ -30,7 +19,7 @@ export async function POST(req: NextRequest) {
 
   const schema = z.object({
     text: z.string().min(1).max(5000),
-    voice: z.string().optional().default('ef_dora'),
+    voice: z.string().optional().default('af_heart'),
     speed: z.number().min(0.5).max(2.0).optional().default(1.0),
   })
 
@@ -42,18 +31,10 @@ export async function POST(req: NextRequest) {
   // Proxy to Kokoro TTS service
   const TTS_URL = process.env.TTS_SERVICE_URL || 'http://localhost:3004'
 
-  const accessToken = (await cookies()).get('ax_access')?.value
-  if (!accessToken) {
-    return NextResponse.json({ error: 'Sesión no válida' }, { status: 401 })
-  }
-
   try {
     const response = await fetch(`${TTS_URL}/tts`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`,
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         text: parse.data.text,
         voice: parse.data.voice,

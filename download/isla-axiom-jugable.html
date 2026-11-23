@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>AXIOM · Isla del Conocimiento</title>
+<style>
+  :root{ --card:rgba(17,20,28,.86); --line:rgba(255,255,255,.10); --blue:#5aa9ff; --ok:#6fd08c; }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;overflow:hidden;background:#a9a3b8;font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+  canvas{display:block}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;color:#eef1f6;backdrop-filter:blur(8px)}
+  #hud{position:fixed;inset:0;pointer-events:none;z-index:5}
+  #title{position:absolute;top:16px;left:16px;padding:12px 16px}
+  #title h1{font-size:20px;letter-spacing:.3px}
+  #title h1 b{color:#fff}
+  #title h1 span{color:var(--blue)}
+  #title p{font-size:11.5px;color:#aeb6c6;margin-top:3px}
+  #chips{position:absolute;top:16px;right:16px;display:flex;gap:10px}
+  .chip{padding:10px 14px;font-size:13px;font-weight:600;white-space:nowrap}
+  .chip small{font-weight:500;color:#aeb6c6;margin-left:6px}
+  #nodos b{color:#ffc861;font-size:15px}
+  #help{position:absolute;left:16px;bottom:16px;padding:12px 14px;font-size:12.5px;line-height:2.05;color:#cfd5e1;max-width:330px}
+  #help kbd{display:inline-block;min-width:26px;text-align:center;padding:2px 7px;margin-right:7px;border-radius:7px;background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 11.5px/1.4 ui-monospace,monospace}
+  #help .sep{border-top:1px solid var(--line);margin:6px 0}
+  #prompt{position:absolute;left:50%;bottom:78px;transform:translateX(-50%);padding:10px 16px;font-size:13.5px;display:none}
+  #prompt kbd{margin-right:8px}
+  #modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:9;background:rgba(8,10,16,.45)}
+  #modal .box{width:min(480px,92vw);padding:22px 24px}
+  #modal h2{font-size:19px;color:#fff;margin-bottom:4px}
+  #modal .tag{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--blue);font-weight:700}
+  #modal p{font-size:14px;line-height:1.65;color:#d7dce6;margin:12px 0 16px}
+  #modal .tip{font-size:12.5px;color:#ffc861;background:rgba(255,200,97,.08);border:1px solid rgba(255,200,97,.25);border-radius:9px;padding:9px 11px;margin-bottom:16px}
+  #modal button{pointer-events:auto;cursor:pointer;width:100%;padding:11px;border:0;border-radius:10px;background:var(--blue);color:#08131f;font-weight:700;font-size:14px}
+  #modal button:hover{filter:brightness(1.1)}
+  #err{position:fixed;left:12px;top:12px;right:12px;z-index:99;display:none;background:#5c1620;color:#ffd9d9;border:1px solid #a33;border-radius:10px;padding:10px 14px;font:12.5px/1.5 ui-monospace,monospace;white-space:pre-wrap}
+  @media (max-width:760px){ #help{display:none} #title p{display:none} }
+</style>
+</head>
+<body>
+<div id="hud">
+  <div id="title" class="card">
+    <h1><b>AXIOM</b> <span>· Isla del Conocimiento</span></h1>
+    <p id="sub">Prototipo jugable — three.js r180 · 3 niveles · montaña real</p>
+  </div>
+  <div id="chips">
+    <div class="chip card" id="nodos">Nodos <b>0/7</b><small>(E)</small></div>
+    <div class="chip card" id="btnNoche">Noche <small>(N)</small></div>
+    <div class="chip card" id="btnCam">Cámara: libre <small>(C)</small></div>
+  </div>
+  <div id="help" class="card">
+    <div><kbd>Arrastrar</kbd> girar cámara · <kbd>Rueda</kbd> zoom</div>
+    <div><kbd>Shift</kbd>+arrastrar &nbsp;mover mapa</div>
+    <div class="sep"></div>
+    <div><kbd>W A S D</kbd> mover al lémur · <kbd>Shift</kbd> correr</div>
+    <div><kbd>Espacio</kbd> saltar</div>
+    <div class="sep"></div>
+    <div><kbd>E</kbd> abrir nodo cercano · <kbd>N</kbd> día/noche · <kbd>C</kbd> cámara seguir</div>
+  </div>
+  <div id="prompt" class="card"><kbd>E</kbd><span id="promptTxt">Abrir nodo</span></div>
+</div>
+<div id="modal"><div class="box card">
+  <div class="tag" id="mTag">Nodo de conocimiento</div>
+  <h2 id="mTitle">—</h2>
+  <p id="mBody">—</p>
+  <div class="tip" id="mTip">—</div>
+  <button id="mBtn">Entendido · cerrar (E)</button>
+</div></div>
+<div id="err"></div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+window.__err = null;
+window.addEventListener('error', e => {
+  window.__err = (e.message||'error') + ' @' + (e.filename||'').split('/').pop() + ':' + (e.lineno||'?');
+  const d = document.getElementById('err'); d.style.display='block'; d.textContent = '⚠ ' + window.__err;
+});
+/* ============================================================
+   Escena, renderizado, luces y cielo
+   ============================================================ */
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, innerWidth/innerHeight, 0.1, 900);
+
+/* --- cielo: cúpula con degradado --- */
+const skyUni = {
+  top:{value:new THREE.Color('#7fa8c9')}, bot:{value:new THREE.Color('#d9d3dd')},
+  off:{value:0.12}, night:{value:0}
+};
+const sky = new THREE.Mesh(
+  new THREE.SphereGeometry(650, 24, 14),
+  new THREE.ShaderMaterial({
+    side:THREE.BackSide, depthWrite:false,
+    uniforms: skyUni,
+    vertexShader:`varying vec3 vP; void main(){ vP=position; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0); }`,
+    fragmentShader:`uniform vec3 top; uniform vec3 bot; uniform float off; varying vec3 vP;
+      void main(){ float t=smoothstep(-off, 320.0, vP.y); gl_FragColor=vec4(mix(bot,top,t),1.0); }`
+  })
+);
+scene.add(sky);
+scene.fog = new THREE.Fog('#c9c4cf', 120, 520);
+
+/* --- estrellas --- */
+const stars = (()=>{
+  const n=900, a=new Float32Array(n*3);
+  for(let i=0;i<n;i++){
+    const u=Math.random()*Math.PI*2, v=Math.random()*0.9+0.08, r=600;
+    a[i*3]=Math.cos(u)*Math.cos(v)*r; a[i*3+1]=Math.sin(v)*r; a[i*3+2]=Math.sin(u)*Math.cos(v)*r;
+  }
+  const g=new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(a,3));
+  const m=new THREE.PointsMaterial({color:'#dfe8ff', size:1.6, sizeAttenuation:false, transparent:true, opacity:0, depthWrite:false, fog:false});
+  const p=new THREE.Points(g,m); scene.add(p); return p;
+})();
+
+/* --- luces --- */
+const hemi = new THREE.HemisphereLight('#cfe4f2', '#6b6252', 0.85); scene.add(hemi);
+const sun = new THREE.DirectionalLight('#fff2dc', 1.85);
+sun.position.set(70, 95, 40);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-85; sun.shadow.camera.right=85;
+sun.shadow.camera.top=85; sun.shadow.camera.bottom=-85;
+sun.shadow.camera.near=10; sun.shadow.camera.far=260;
+sun.shadow.bias = -0.0006;
+scene.add(sun); scene.add(sun.target);
+const moon = new THREE.DirectionalLight('#8fa8d8', 0.0);
+moon.position.set(-60, 80, -30); scene.add(moon);
+const amb = new THREE.AmbientLight('#5a6a86', 0.0); scene.add(amb);
+/* ============================================================
+   AXIOM · Isla del Conocimiento — terreno de montaña real
+   FIX socavón: el perfil SUBE hacia la cumbre (antes quedaba
+   invertido y el centro se hundía como cráter).
+   ============================================================ */
+
+const ISLE_R   = 58;                      // radio de la isla (tile 128×128)
+const PEAK     = { x: -9, z: -7 };        // cumbre ligeramente descentrada (NW)
+const MTN_R    = 46;                      // radio de la montaña
+const LVL      = [1.5, 9.2, 17.2, 26.0];  // playa/vega · nivel 1 · nivel 2 · cumbre
+const SEA_Y    = 0.30;
+
+const clamp = (v,a,b)=>Math.min(b,Math.max(a,v));
+const smoothstep = (a,b,x)=>{ x=clamp((x-a)/(b-a),0,1); return x*x*(3-2*x); };
+const lerp = (a,b,t)=>a+(b-a)*t;
+
+/* --- ruido de valor determinista --- */
+function hash2(x,z){ const s=Math.sin(x*127.1+z*311.7)*43758.5453; return s-Math.floor(s); }
+function vnoise(x,z){
+  const xi=Math.floor(x), zi=Math.floor(z), xf=x-xi, zf=z-zi;
+  const a=hash2(xi,zi), b=hash2(xi+1,zi), c=hash2(xi,zi+1), d=hash2(xi+1,zi+1);
+  const u=xf*xf*(3-2*xf), v=zf*zf*(3-2*zf);
+  return a*(1-u)*(1-v)+b*u*(1-v)+c*(1-u)*v+d*u*v;
+}
+function fbm(x,z){ return vnoise(x,z)*0.6 + vnoise(x*2.13+7.3,z*2.13-3.1)*0.28 + vnoise(x*4.31-2.7,z*4.31+5.9)*0.12; }
+
+/* --- perfil base de la montaña: 0 en la costa → LVL[3] en la cumbre ---
+   TRES NIVELES EN TERRAZA: mesetas amplias + transiciones cortas y empinadas. */
+function mountainH(x,z){
+  const d = Math.hypot(x-PEAK.x, z-PEAK.z);
+  const p = clamp(1 - d/MTN_R, 0, 1);          // 0 costa → 1 cumbre
+  const seg = Math.min(2.999, p*3);
+  const i = Math.floor(seg), f = seg-i;
+  const b = smoothstep(0.45, 0.88, f);          // meseta ancha, escalón corto
+  let h = lerp(LVL[i], LVL[i+1], b);
+  h += (fbm(x*0.055+9.2, z*0.055-4.7)-0.5) * (1.4 + p*2.6);   // relieve natural
+  return h;
+}
+
+
+const riverCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(-4,-0,-16),    // manantial en la meseta alta (a 10.3 de la cumbre)
+  new THREE.Vector3(6,-0,-12),
+  new THREE.Vector3(13,-0,-2),
+  new THREE.Vector3(16,-0,10),
+  new THREE.Vector3(13,-0,24),
+  new THREE.Vector3(7,-0, 34),
+  new THREE.Vector3(-5,-0, 42),
+  new THREE.Vector3(-19,-0, 49),   // desembocadura SW
+]);
+const RS = [];                                    // estaciones del río
+{
+  const N = 240;
+  for(let i=0;i<=N;i++){
+    const t=i/N, pt=riverCurve.getPoint(t), tg=riverCurve.getTangent(t).normalize();
+    const rC = Math.hypot(pt.x, pt.z);
+    const mask = 1 - smoothstep(ISLE_R-7, ISLE_R+2, rC);
+    RS.push({ x:pt.x, z:pt.z, tx:tg.x, tz:tg.z, hRaw: Math.max(0.15, mountainH(pt.x,pt.z)*mask) });
+  }
+  RS[0].h = RS[0].hRaw;                                     // ← antes del bucle (evita NaN)
+  for(let i=1;i<RS.length;i++) RS[i].h = Math.min(RS[i].hRaw, RS[i-1].h);   // descenso monótono → cascadas
+}
+function riverDist(x,z){                          // distancia a la línea central del río
+  let best=1e12, bi=0;
+  for(let i=0;i<RS.length;i++){
+    const dx=x-RS[i].x, dz=z-RS[i].z, q=dx*dx+dz*dz;
+    if(q<best){ best=q; bi=i; }
+  }
+  return { d: Math.sqrt(best), i: bi };
+}
+
+/* --- ALTURA FINAL DEL TERRENO (analítica: la usa el motor Y el lémur) --- */
+function terrainH(x,z){
+  const rC = Math.hypot(x,z);
+  const mask = 1 - smoothstep(ISLE_R-7, ISLE_R+2, rC);      // 1 dentro → 0 costa
+  let h = mountainH(x,z) * mask;
+  h -= smoothstep(ISLE_R-1, ISLE_R+16, rC) * 7;             // lecho marino
+  // VEGA costera suave (llanura exterior, sin cráter)
+  // Río: excavar cauce con orillas suaves
+  const rv = riverDist(x,z);
+  if(rv.d < 8.5){
+    const w = 3.6;
+    const k = 1 - smoothstep(w*0.5, w*1.9, rv.d);           // 1 cauce → 0 orilla
+    const bed = RS[rv.i].h - 1.15;
+    h = lerp(h, Math.min(h, bed), k);
+  }
+  return h;
+}
+function terrainSlope(x,z){
+  const e=0.9;
+  const hx = terrainH(x+e,z)-terrainH(x-e,z), hz = terrainH(x,z+e)-terrainH(x,z-e);
+  return Math.hypot(hx,hz)/(2*e);
+}
+
+/* --- malla del terreno con colores por vértice --- */
+const terrainGeo = new THREE.PlaneGeometry(150,150,168,168);
+terrainGeo.rotateX(-Math.PI/2);
+{
+  const pos = terrainGeo.attributes.position;
+  const col = new Float32Array(pos.count*3);
+  const GRID = 169, CELL = 150/168;                 // rejilla 169×169 de PlaneGeometry
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i), z=pos.getZ(i);
+    pos.setY(i, terrainH(x,z));
+  }
+  const C = {
+    sandLo:new THREE.Color('#b9a77c'), sand:new THREE.Color('#dcc78f'),
+    grassA:new THREE.Color('#79a75e'), grassB:new THREE.Color('#5d8f4a'),
+    grassHi:new THREE.Color('#93bd6c'), cliff:new THREE.Color('#8f7f68'),
+    rock:new THREE.Color('#87827a'), peak:new THREE.Color('#a3a7ad'),
+    sea:new THREE.Color('#8fae9b')
+  };
+  const c = new THREE.Color();
+  const deepSea = new THREE.Color('#2e7d9e');
+  for(let i=0;i<pos.count;i++){
+    const x=pos.getX(i), z=pos.getZ(i);
+    const h=pos.getY(i);
+    // pendiente desde vecinos de la rejilla (rápido)
+    const gx=i%GRID, gz=(i/GRID)|0;
+    const hx1=pos.getY(i - (gx>0?1:0)), hx2=pos.getY(i + (gx<GRID-1?1:0));
+    const hz1=pos.getY(i - (gz>0?GRID:0)), hz2=pos.getY(i + (gz<GRID-1?GRID:0));
+    const sl=Math.max(
+      Math.abs(hx2-hx1)/((gx>0&&gx<GRID-1?2:1)*CELL),
+      Math.abs(hz2-hz1)/((gz>0&&gz<GRID-1?2:1)*CELL)
+    );
+    const n=fbm(x*0.09+3.3,z*0.09+8.8);
+    if(h<0.15) c.copy(C.sea);
+    else if(h<2.1) c.copy(C.sand).lerp(C.sandLo, smoothstep(1.2,-0.2,h)*0.6);
+    else if(h>22.5) c.copy(C.peak).lerp(C.rock, clamp((26-h)/4,0,1)*0.55);
+    else if(sl>0.85) c.copy(C.cliff).lerp(C.rock, clamp((sl-0.85)/0.8,0,1));
+    else {
+      c.copy(C.grassA).lerp(C.grassB,n);
+      if(h>12) c.lerp(C.rock, smoothstep(12,17,h)*0.35);
+      if(n>0.62) c.lerp(C.grassHi,0.4);
+    }
+    col[i*3]=c.r; col[i*3+1]=c.g; col[i*3+2]=c.b;
+  }
+  // desvanecer el borde del plano (lecho marino) hacia tono de agua profunda
+  for(let i=0;i<pos.count;i++){
+    const rC=Math.hypot(pos.getX(i), pos.getZ(i));
+    const k=smoothstep(64, 73, rC)*0.9;
+    col[i*3]  = lerp(col[i*3],   deepSea.r, k);
+    col[i*3+1]= lerp(col[i*3+1], deepSea.g, k);
+    col[i*3+2]= lerp(col[i*3+2], deepSea.b, k);
+  }
+  terrainGeo.setAttribute('color', new THREE.BufferAttribute(col,3));
+  terrainGeo.computeVertexNormals();
+}
+const terrain = new THREE.Mesh(terrainGeo, new THREE.MeshStandardMaterial({vertexColors:true, flatShading:true, roughness:0.95, metalness:0}));
+terrain.receiveShadow = true;
+terrain.castShadow = false;
+scene.add(terrain);
+
+/* --- mar --- */
+const sea = new THREE.Mesh(
+  new THREE.CircleGeometry(800, 64).rotateX(-Math.PI/2),
+  new THREE.MeshStandardMaterial({color:'#3f8fb0', transparent:true, opacity:0.93, roughness:0.35, metalness:0.05})
+);
+sea.position.y = SEA_Y;
+scene.add(sea);
+
+/* --- lámina de agua del río (cinta sobre el cauce) --- */
+const falls = [];
+{
+  const W = 3.2, vts=[], idx=[], uvs=[];
+  for(let i=0;i<RS.length;i++){
+    const s=RS[i], px=-s.tz, pz=s.tx;                 // perpendicular en XZ
+    const y = s.h - 0.35;
+    vts.push(s.x+px*W, y, s.z+pz*W,  s.x-px*W, y, s.z-pz*W);
+    uvs.push(0,i/RS.length, 1,i/RS.length);
+    if(i<RS.length-1){ const a=i*2; idx.push(a,a+2,a+1, a+1,a+2,a+3); }
+    // cascada donde el cauce cae de golpe (escalón de terraza)
+    if(i>0 && RS[i-1].h - s.h > 2.6){
+      const yTop = RS[i-1].h - 0.30;
+      falls.push({x:s.x, z:s.z, yTop, yBot:y, w:W, px, pz});
+    }
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(vts,3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uvs,2));
+  g.setIndex(idx); g.computeVertexNormals();
+  const water = new THREE.Mesh(g, new THREE.MeshStandardMaterial({color:'#5ec2de', transparent:true, opacity:0.8, roughness:0.25, side:THREE.DoubleSide}));
+  scene.add(water);
+  for(const f of falls){
+    const q = new THREE.Mesh(new THREE.PlaneGeometry(f.w*2, Math.max(1.2,f.yTop-f.yBot)),
+      new THREE.MeshStandardMaterial({color:'#bfe9f5', transparent:true, opacity:0.55, side:THREE.DoubleSide, roughness:0.2}));
+    q.position.set(f.x, (f.yTop+f.yBot)/2, f.z);
+    q.rotation.y = Math.atan2(-f.pz, f.px);         // hoja vertical, ancho ⟂ al flujo
+    scene.add(q);
+  }
+}
+/* ============================================================
+   Colocación (layout SDK anti-solapes) + propiedades + lémur
+   ============================================================ */
+const OBJ_TOTAL = { n: 0 };
+const OCC = [];   // rects XZ ocupados {x,z,hw,hd}
+function rectCorners(x,z,hw,hd,rot){
+  const c=Math.cos(rot), s=Math.sin(rot);
+  return [[-hw,-hd],[hw,-hd],[hw,hd],[-hw,hd]].map(([px,pz])=>[x+px*c+pz*s, z-px*s+pz*c]);
+}
+function overlaps(x,z,hw,hd,rot){
+  const A = rectCorners(x,z,hw,hd,rot);
+  for(const o of OCC){
+    const B = rectCorners(o.x,o.z,o.hw,o.hd,o.rot||0);
+    const axes = [[1,0],[0,1],[Math.cos(rot),-Math.sin(rot)],[Math.cos(o.rot||0),-Math.sin(o.rot||0)]];
+    let sepAll = true;
+    for(const sep of axes){
+      let aMin=1e9,aMax=-1e9,bMin=1e9,bMax=-1e9;
+      for(const [px,pz] of A){ const d=px*sep[0]+pz*sep[1]; aMin=Math.min(aMin,d); aMax=Math.max(aMax,d); }
+      for(const [px,pz] of B){ const d=px*sep[0]+pz*sep[1]; bMin=Math.min(bMin,d); bMax=Math.max(bMax,d); }
+      if(aMax<bMin || bMax<aMin){ sepAll=false; break; }
+    }
+    if(sepAll) return true;                       // solapa en todos los ejes probados
+  }
+  return false;
+}
+function claim(x,z,hw,hd,label,rot=0,minGap=1.2){
+  const X=x, Z=z;
+  if(overlaps(X,Z,hw+minGap,hd+minGap,rot)){ console.warn('solape evitado:',label); return false; }
+  OCC.push({x:X,z:Z,hw:hw+minGap,hd:hd+minGap,rot});
+  return true;
+}
+function farFromPath(x,z,d){ let m=1e9; for(const p of PATH_PTS){ const q=Math.hypot(x-p.x,z-p.z); if(q<m)m=q; } return m>d; }
+function farFromRiver(x,z,d){ return riverDist(x,z).d > d; }
+
+/* --- camino principal: torii (playa SE) → puente → terrazas → cumbre --- */
+const pathCurve = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(34,0,42),    // 0 · torii en la playa
+  new THREE.Vector3(24,0,36),
+  new THREE.Vector3(13,0,28),    // ~cruce del río (puente)
+  new THREE.Vector3(1,0,23),
+  new THREE.Vector3(-5,0,11),
+  new THREE.Vector3(-9,0,-1),
+  new THREE.Vector3(-9,0,-7),    // 6 · cumbre
+], false, 'catmullrom', 0.35);
+const PATH_N = 460, PATH_PTS = [];
+for(let i=0;i<=PATH_N;i++){
+  const t=i/PATH_N, p=pathCurve.getPoint(t), tg=pathCurve.getTangent(t).normalize();
+  PATH_PTS.push({x:p.x, z:p.z, tx:tg.x, tz:tg.z, h:0});
+}
+for(const p of PATH_PTS) p.h = terrainH(p.x,p.z);
+
+/* --- punto de cruce camino×río → puente perpendicular --- */
+let BRIDGE = null;
+{
+  let best=1e12, bi=0, bj=0;
+  for(let i=8;i<PATH_PTS.length-8;i++){
+    for(let j=0;j<RS.length;j++){
+      const dx=PATH_PTS[i].x-RS[j].x, dz=PATH_PTS[i].z-RS[j].z, q=dx*dx+dz*dz;
+      if(q<best){ best=q; bi=i; bj=j; }
+    }
+  }
+  const rp = RS[bj];
+  BRIDGE = { x:rp.x, z:rp.z, tx:rp.tx, tz:rp.tz, h:rp.h, pathI:bi, riverJ:bj };
+}
+
+/* --- piedra del camino (instanciada) --- */
+{
+  const g = new THREE.BoxGeometry(1.5,0.22,1.05);
+  const m = new THREE.MeshStandardMaterial({color:'#b6ad9c', flatShading:true, roughness:1});
+  const step = 2, list=[];
+  for(let i=0;i<PATH_PTS.length;i+=step){
+    const p=PATH_PTS[i];
+    const rv = riverDist(p.x,p.z);
+    const nearBridge = Math.abs(i-BRIDGE.pathI) < 26;
+    if(rv.d < 5.2 && !nearBridge) continue;                 // no piedras dentro del cauce
+    if(p.h < 0.4) continue;                                 // ni bajo el agua de mar
+    list.push(p);
+  }
+  const im = new THREE.InstancedMesh(g, m, list.length);
+  const M = new THREE.Matrix4(), Q = new THREE.Quaternion(), S = new THREE.Vector3(1,1,1), E = new THREE.Euler();
+  list.forEach((p,k)=>{
+    const ang = Math.atan2(p.tx,p.tz) + (hash2(k*3.7,k*1.3)-0.5)*0.5;
+    E.set(0,ang,(hash2(k,k*2.1)-0.5)*0.1); Q.setFromEuler(E);
+    const sh = 0.85+hash2(k*2.3,k*9.1)*0.4;
+    S.set(sh,1,0.9+hash2(k*4.4,k)*0.3);
+    const jx=(hash2(k*5.1,k)-0.5)*0.5, jz=(hash2(k,k*7.7)-0.5)*0.5;
+    M.compose(new THREE.Vector3(p.x+jx, p.h+0.10, p.z+jz), Q, S);
+    im.setMatrixAt(k,M);
+  });
+  im.castShadow = im.receiveShadow = true;
+  scene.add(im);
+  OBJ_TOTAL.n += list.length;
+}
+
+/* --- helpers de construcción --- */
+function mesh(geo, mat, x,y,z, ry=0, parent=scene){
+  const o = new THREE.Mesh(geo,mat); o.position.set(x,y,z); o.rotation.y=ry;
+  o.castShadow = true; o.receiveShadow = true; parent.add(o); return o;
+}
+const MAT = {
+  wood:  new THREE.MeshStandardMaterial({color:'#8a5a35', flatShading:true, roughness:0.9}),
+  woodD: new THREE.MeshStandardMaterial({color:'#5f3d22', flatShading:true, roughness:0.95}),
+  plank: new THREE.MeshStandardMaterial({color:'#a9764a', flatShading:true, roughness:0.9}),
+  red:   new THREE.MeshStandardMaterial({color:'#c0392b', flatShading:true, roughness:0.75}),
+  dark:  new THREE.MeshStandardMaterial({color:'#2e2a28', flatShading:true, roughness:0.9}),
+  stone: new THREE.MeshStandardMaterial({color:'#9b968c', flatShading:true, roughness:1}),
+  stoneD:new THREE.MeshStandardMaterial({color:'#77726a', flatShading:true, roughness:1}),
+  wall:  new THREE.MeshStandardMaterial({color:'#e8dcc3', flatShading:true, roughness:0.95}),
+  roof:  new THREE.MeshStandardMaterial({color:'#3f5d7a', flatShading:true, roughness:0.8, side:THREE.DoubleSide}),
+  leafP: new THREE.MeshStandardMaterial({color:'#4e7d43', flatShading:true, roughness:1}),
+  leafR: new THREE.MeshStandardMaterial({color:'#6fa054', flatShading:true, roughness:1}),
+  trunk: new THREE.MeshStandardMaterial({color:'#6d4a2c', flatShading:true, roughness:1}),
+  gold:  new THREE.MeshStandardMaterial({color:'#e8b84b', flatShading:true, roughness:0.4, metalness:0.5, emissive:'#5c4210'}),
+};
+
+/* --- TORII: entrada alineada con el camino (se atraviesa caminando) --- */
+const TORII = PATH_PTS[0];
+{
+  const g = new THREE.Group();
+  const H = 5.2, SEP = 2.3;
+  for(const sx of [-1,1]){
+    mesh(new THREE.CylinderGeometry(0.34,0.42,H,7), MAT.red, sx*SEP, H/2, 0, 0, g);
+    mesh(new THREE.CylinderGeometry(0.45,0.45,0.5,7), MAT.dark, sx*SEP, H+0.2, 0, 0, g);
+  }
+  mesh(new THREE.BoxGeometry(7.4,0.5,0.8), MAT.dark, 0, H+0.55, 0, 0, g);        // kasagi
+  mesh(new THREE.BoxGeometry(6.2,0.42,0.66), MAT.red, 0, H+1.0, 0, 0, g);
+  mesh(new THREE.BoxGeometry(5.6,0.36,0.5), MAT.red, 0, H-1.15, 0, 0, g);        // nuki
+  mesh(new THREE.BoxGeometry(0.4,1.0,0.4), MAT.red, 0, H-0.55, 0, 0, g);         // gakuzuka
+  const p = TORII;
+  g.position.set(p.x, terrainH(p.x,p.z)-0.15, p.z);
+  g.rotation.y = Math.atan2(p.tx, p.tz);                                          // plano ⟂ al camino
+  scene.add(g); OBJ_TOTAL.n++;
+  claim(p.x,p.z,4.4,2.6,'torii',g.rotation.y,2);
+}
+
+/* --- CASA DEL SABER: fuera del río, puerta hacia el camino --- */
+{
+  const HX=22, HZ=16;
+  const hy = terrainH(HX,HZ);
+  const g = new THREE.Group();
+  mesh(new THREE.BoxGeometry(7,3.4,5.6), MAT.wall, 0,1.7,0, 0, g);
+  // techo a dos aguas (prisma)
+  const rg = new THREE.BufferGeometry();
+  const w=4.15, d=3.3, peakY=6.0, baseY=3.35;
+  const V=[ -w,baseY,-d,  w,baseY,-d,  0,peakY,-d,   -w,baseY, d,  0,peakY, d,  w,baseY, d,
+            -w,baseY,-d, 0,peakY,-d, 0,peakY, d,  -w,baseY, d,
+             w,baseY, d, 0,peakY, d, 0,peakY,-d,  w,baseY,-d ];
+  const I=[0,1,2, 3,4,5, 6,7,8, 9,10,11, 12,13,14, 15,16,17];
+  rg.setAttribute('position', new THREE.Float32BufferAttribute(V,3));
+  rg.setIndex(I); rg.computeVertexNormals();
+  const roof = new THREE.Mesh(rg, MAT.roof); roof.castShadow=true; g.add(roof);
+  mesh(new THREE.BoxGeometry(1.1,2.1,0.15), MAT.woodD, 0,1.05,2.85, 0, g);        // puerta
+  for(const wx of [-2.2,2.2]) mesh(new THREE.BoxGeometry(1.2,1.0,0.12), MAT.gold, wx,1.9,2.83, 0, g);
+  mesh(new THREE.BoxGeometry(3.4,0.22,2.0), MAT.plank, 0,0.12,3.6, 0, g);         // porche
+  for(const px of [-1.5,1.5]) mesh(new THREE.CylinderGeometry(0.09,0.09,2.1,5), MAT.woodD, px,1.05,4.4, 0, g);
+  mesh(new THREE.BoxGeometry(0.8,1.6,0.8), MAT.stoneD, 2.6,4.1,-0.9, 0, g);       // chimenea
+  g.position.set(HX,hy-0.1,HZ);
+  const to = PATH_PTS[Math.round(PATH_N*0.42)];                                    // mira hacia el camino
+  g.rotation.y = Math.atan2(to.x-HX, to.z-HZ);
+  scene.add(g); OBJ_TOTAL.n += 8;
+  claim(HX,HZ,4.6,3.6,'casa',g.rotation.y,2.5);
+}
+
+/* --- PUENTE perpendicular al río (fix: atan2 sin +PI/2, deck largo en X local) --- */
+{
+  const b = BRIDGE;
+  const g = new THREE.Group();
+  const LEN = 9.0, WID = 2.6;
+  mesh(new THREE.BoxGeometry(LEN,0.35,WID), MAT.plank, 0,0,0, 0, g);
+  // tablas
+  for(let i=-3;i<=3;i++) mesh(new THREE.BoxGeometry(0.9,0.09,WID-0.1), MAT.wood, i*1.25,0.23,0, 0, g);
+  for(const sx of [-1,1]){
+    mesh(new THREE.BoxGeometry(LEN,0.1,0.14), MAT.woodD, 0,1.0, sx*(WID/2), 0, g);   // pasamanos
+    for(let px=-3;px<=3;px++) mesh(new THREE.BoxGeometry(0.12,1.0,0.12), MAT.woodD, px*1.25,0.55, sx*(WID/2), 0, g);
+  }
+  for(const ex of [-1,1]) mesh(new THREE.CylinderGeometry(0.35,0.4,3.2,6), MAT.woodD, ex*(LEN/2-0.4),-1.2,0, 0, g);
+  g.position.set(b.x, b.h+0.35, b.z);
+  g.rotation.y = Math.atan2(b.tx, b.tz);          // eje Z local ⇒ tangente del río ⇒ X local cruza el río
+  scene.add(g); OBJ_TOTAL.n += 4;
+  claim(b.x,b.z,LEN/2,WID/2+1,'puente',g.rotation.y,1.5);
+}
+
+/* --- MUELLE en la playa norte --- */
+{
+  const DX=-2, DZ=-53;
+  const dir = Math.atan2(DX, DZ);                  // hacia fuera de la isla
+  const hy = terrainH(DX,DZ);
+  const g = new THREE.Group();
+  mesh(new THREE.BoxGeometry(3.2,0.24,7.5), MAT.plank, 0,0.5,1.6, 0, g);
+  for(const px of [-1.4,1.4]) for(const pz of [-1.4,1.2,3.8])
+    mesh(new THREE.CylinderGeometry(0.14,0.14,3.4,5), MAT.woodD, px,hy-0.9,pz, 0, g);
+  g.position.set(DX,hy,DZ); g.rotation.y = dir;
+  scene.add(g); OBJ_TOTAL.n += 1;
+  claim(DX,DZ,2.4,4.6,'muelle',dir,2);
+}
+
+/* --- FAROLES de piedra a lo largo del camino --- */
+{
+  const lampGlow = [];
+  for(let i=14;i<PATH_N-6;i+=34){
+    const p=PATH_PTS[i];
+    const px=-p.tz, pz=p.tx, side=(i/34)%2===0?1:-1;
+    const lx=p.x+px*2.4*side, lz=p.z+pz*2.4*side;
+    if(!farFromRiver(lx,lz,5.0)) continue;
+    const h=terrainH(lx,lz); if(h<0.6) continue;
+    const g=new THREE.Group();
+    mesh(new THREE.CylinderGeometry(0.22,0.3,1.0,6), MAT.stoneD, 0,0.5,0, 0, g);
+    mesh(new THREE.BoxGeometry(0.55,0.55,0.55), MAT.stone, 0,1.25,0, 0.3, g);
+    const cap = mesh(new THREE.ConeGeometry(0.55,0.4,6), MAT.stoneD, 0,1.72,0, 0, g);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.16,8,6),
+      new THREE.MeshStandardMaterial({color:'#ffd98a', emissive:'#ffb84d', emissiveIntensity:0.15}));
+    bulb.position.set(0,1.25,0); g.add(bulb);
+    g.position.set(lx,h,lz); scene.add(g); OBJ_TOTAL.n++;
+    lampGlow.push(bulb);
+    claim(lx,lz,0.5,0.5,'farol',0,0.6);
+  }
+  window.__lampGlow = lampGlow;
+}
+
+/* --- reserva de rects grandes ANTES de sembrar vegetación (evita invasiones) --- */
+claim(-16,-18,4.6,4.6,'jardin-pre',0,1.6);      // jardín zen
+claim(-32,  8,6.0,6.0,'arboleda-pre',0,1.0);    // arboleda
+
+/* --- vegetación instanciada (árboles, rocas, hierba, flores) --- */
+{
+  const dummy = new THREE.Object3D();
+  const pines=[], rounds=[], rocksA=[], grass=[], flowers=[];
+  const okSpot = (x,z,needH=1.8)=>{
+    if(Math.hypot(x,z) > ISLE_R-3) return false;
+    const h=terrainH(x,z); if(h<needH||h>21) return false;
+    if(terrainSlope(x,z)>0.85) return false;
+    if(!farFromRiver(x,z,6.2)) return false;
+    if(!farFromPath(x,z,3.6)) return false;
+    for(const o of OCC){ if(Math.abs(x-o.x)<o.hw+1.6 && Math.abs(z-o.z)<o.hd+1.6) return false; }
+    return true;
+  };
+  let tries=0;
+  while(pines.length+rounds.length < 92 && tries++<4000){
+    const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*(ISLE_R-6);
+    const x=Math.cos(a)*r, z=Math.sin(a)*r;
+    if(!okSpot(x,z)) continue;
+    const h=terrainH(x,z);
+    const rec={x,z,y:h-0.15, s:0.8+Math.random()*0.7, ry:Math.random()*Math.PI*2};
+    (h>10.5||Math.random()<0.35? pines:rounds).push(rec);
+    OCC.push({x,z,hw:1.4*rec.s,hd:1.4*rec.s,rot:0});
+  }
+  tries=0;
+  while(rocksA.length < 42 && tries++<2500){
+    const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*(ISLE_R-2);
+    const x=Math.cos(a)*r, z=Math.sin(a)*r, h=terrainH(x,z);
+    if(h<0.1) continue;
+    if(!farFromRiver(x,z,4.6) || !farFromPath(x,z,2.6)) continue;
+    let bad=false; for(const o of OCC){ if(Math.abs(x-o.x)<o.hw+0.8 && Math.abs(z-o.z)<o.hd+0.8){bad=true;break;} }
+    if(bad) continue;
+    rocksA.push({x,z,y:h-0.2,s:0.5+Math.random()*1.3,ry:Math.random()*Math.PI*2});
+    OCC.push({x,z,hw:0.8,hd:0.8,rot:0});
+  }
+  tries=0;
+  while(grass.length < 170 && tries++<3000){
+    const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*(ISLE_R-4);
+    const x=Math.cos(a)*r, z=Math.sin(a)*r, h=terrainH(x,z);
+    if(h<1.9||h>19) continue;
+    if(!farFromRiver(x,z,4.4)) continue;
+    grass.push({x,z,y:h,s:0.6+Math.random()*0.8,ry:Math.random()*Math.PI});
+  }
+  tries=0;
+  while(flowers.length < 90 && tries++<2500){
+    const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*(ISLE_R-4);
+    const x=Math.cos(a)*r, z=Math.sin(a)*r, h=terrainH(x,z);
+    if(h<1.9||h>11) continue;
+    if(!farFromRiver(x,z,4.4) || !farFromPath(x,z,2.2)) continue;
+    flowers.push({x,z,y:h,s:0.5+Math.random()*0.5});
+  }
+  function inst(g, m, arr, yOff=0, sMul=1){
+    const im=new THREE.InstancedMesh(g,m,arr.length);
+    arr.forEach((o,i)=>{
+      dummy.position.set(o.x,o.y+yOff*o.s,o.z);
+      dummy.rotation.set(0,o.ry||0,0);
+      dummy.scale.setScalar(o.s*sMul);
+      dummy.updateMatrix(); im.setMatrixAt(i,dummy.matrix);
+    });
+    im.castShadow=true; im.receiveShadow=true; scene.add(im); return im;
+  }
+  // pinos: tronco + 2 conos
+  {
+    const tr=inst(new THREE.CylinderGeometry(0.16,0.26,1.5,6), MAT.trunk, pines, 0.75);
+    const c1=new THREE.InstancedMesh(new THREE.ConeGeometry(1.25,2.4,7), MAT.leafP, pines.length);
+    const c2=new THREE.InstancedMesh(new THREE.ConeGeometry(0.9,1.9,7), MAT.leafP, pines.length);
+    pines.forEach((o,i)=>{
+      dummy.position.set(o.x,o.y+2.4*o.s,o.z); dummy.rotation.set(0,o.ry,0); dummy.scale.setScalar(o.s); dummy.updateMatrix(); c1.setMatrixAt(i,dummy.matrix);
+      dummy.position.y=o.y+3.9*o.s; dummy.updateMatrix(); c2.setMatrixAt(i,dummy.matrix);
+    });
+    c1.castShadow=c2.castShadow=true; scene.add(c1); scene.add(c2);
+    OBJ_TOTAL.n += pines.length;
+  }
+  // árboles redondos: tronco + copa icosaédrica
+  {
+    inst(new THREE.CylinderGeometry(0.2,0.3,1.7,6), MAT.trunk, rounds, 0.85);
+    const crown=new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1.35,0), MAT.leafR, rounds.length);
+    rounds.forEach((o,i)=>{
+      dummy.position.set(o.x,o.y+2.5*o.s,o.z); dummy.rotation.set(0,o.ry,0); dummy.scale.set(o.s*1.15,o.s,o.s*1.15);
+      dummy.updateMatrix(); crown.setMatrixAt(i,dummy.matrix);
+    });
+    crown.castShadow=true; scene.add(crown);
+    OBJ_TOTAL.n += rounds.length;
+  }
+  inst(new THREE.DodecahedronGeometry(1,0), MAT.stone, rocksA, 0.45);
+  OBJ_TOTAL.n += rocksA.length;
+  inst(new THREE.ConeGeometry(0.16,0.55,4), MAT.leafP, grass, 0.26);
+  OBJ_TOTAL.n += grass.length;
+  {
+    const im=inst(new THREE.SphereGeometry(0.11,6,5), new THREE.MeshStandardMaterial({flatShading:true, roughness:0.8}), flowers, 0.3);
+    const cols=['#e26d5c','#eec95c','#d978b5','#7ea4e0','#e8e5da'];
+    flowers.forEach((o,i)=> im.setColorAt(i, new THREE.Color(cols[i%cols.length])));
+    OBJ_TOTAL.n += flowers.length;
+  }
+}
+
+/* --- JARDÍN DE LA CALMA (meseta nivel 2, oeste) con valla y arena rastrillada --- */
+{
+  const GX=-16, GZ=-18, gy=terrainH(GX,GZ);
+  const g=new THREE.Group();
+  const sand=new THREE.Mesh(new THREE.CircleGeometry(4.0,24).rotateX(-Math.PI/2),
+    new THREE.MeshStandardMaterial({color:'#e4d9bd', flatShading:true, roughness:1}));
+  sand.position.y=0.06; sand.receiveShadow=true; g.add(sand);
+  for(const [rx,rz,s] of [[-1.7,-1.0,0.7],[1.8,0.5,0.9],[0.3,1.7,0.5],[-0.6,-1.8,0.45]]){
+    mesh(new THREE.DodecahedronGeometry(s,0), MAT.stoneD, rx,s*0.5,rz, rx, g);
+  }
+  for(let a=0;a<14;a++){
+    const t=a/14*Math.PI*2;
+    mesh(new THREE.BoxGeometry(0.16,0.9,0.16), MAT.woodD, Math.cos(t)*4.35,0.45,Math.sin(t)*4.35, 0, g);
+  }
+  const lamp=new THREE.Mesh(new THREE.SphereGeometry(0.3,8,6),
+    new THREE.MeshStandardMaterial({color:'#ffe1a1', emissive:'#ffbe5c', emissiveIntensity:0.2}));
+  lamp.position.set(0,1.5,0); g.add(lamp);
+  mesh(new THREE.CylinderGeometry(0.09,0.12,1.4,5), MAT.stoneD, 0,0.7,0, 0, g);
+  window.__lampGlow.push(lamp);
+  g.position.set(GX,gy,GZ); scene.add(g); OBJ_TOTAL.n += 19;
+}
+
+/* --- ARBOLEDA (nodo del nivel 1) --- */
+{
+  const CX=-32, CZ=8;
+  for(let i=0;i<8;i++){
+    const t=i/8*Math.PI*2, x=CX+Math.cos(t)*4.6, z=CZ+Math.sin(t)*4.6;
+    const h=terrainH(x,z), s=1.0+hash2(i*7.3,i)*0.5;
+    const tr=mesh(new THREE.CylinderGeometry(0.2,0.32,1.8*s,6), MAT.trunk, x,h+0.9*s,z);
+    const cr=mesh(new THREE.IcosahedronGeometry(1.5*s,0), MAT.leafR, x,h+2.7*s,z, hash2(i,i*3));
+    cr.scale.set(1.15*s,s,1.15*s);
+    OBJ_TOTAL.n++;
+  }
+  claim(CX,CZ,6,6,'arboleda',0,1);
+}
+
+/* --- ROCAS FLOTANTES (acento místico) --- */
+const floaters=[];
+{
+  const mats=[MAT.stone, MAT.stoneD];
+  for(let i=0;i<6;i++){
+    const a=i/6*Math.PI*2+0.5, r=68+hash2(i,3)*16;
+    const x=Math.cos(a)*r, z=Math.sin(a)*r, y=6.5+hash2(i,9)*8;
+    const g=new THREE.Group();
+    const n=2+((i%2)|0);
+    for(let k=0;k<n;k++){
+      const rk=mesh(new THREE.DodecahedronGeometry(1.6-hash2(i,k)*0.9,0), mats[k%2],
+        (hash2(k,i)-0.5)*3.2, (hash2(i,k)-0.5)*1.6, (hash2(k+1,i)-0.5)*3.2, hash2(i*3,k), g);
+      rk.castShadow=false;
+    }
+    g.position.set(x,y,z); scene.add(g);
+    floaters.push({g, y0:y, ph:hash2(i,5)*6.28, sp:0.3+hash2(i,7)*0.3});
+    OBJ_TOTAL.n += n;
+  }
+}
+/* ============================================================
+   Lémur mascota, gameplay, nodos, día/noche, bucle
+   ============================================================ */
+
+/* --- LÉMUR de cola anillada (primitivas flat-shaded) --- */
+const lemur = new THREE.Group();
+const lemParts = {};
+{
+  const furM  = new THREE.MeshStandardMaterial({color:'#d9d4ca', flatShading:true, roughness:0.9});
+  const darkM = new THREE.MeshStandardMaterial({color:'#3a3733', flatShading:true, roughness:0.9});
+  const whiteM= new THREE.MeshStandardMaterial({color:'#f4f1ea', flatShading:true, roughness:0.85});
+  const mk=(geo,m,x,y,z)=>{ const o=new THREE.Mesh(geo,m); o.position.set(x,y,z); o.castShadow=true; lemur.add(o); return o; };
+
+  const body = mk(new THREE.SphereGeometry(0.5,10,8), furM, 0,0.78,0); body.scale.set(0.88,1.0,1.18);
+  const belly= mk(new THREE.SphereGeometry(0.36,9,7), whiteM, 0,0.74,0.22); belly.scale.set(0.75,0.9,0.95);
+  const head = mk(new THREE.SphereGeometry(0.42,10,8), furM, 0,1.42,0.14); head.scale.set(0.95,0.9,0.95);
+  mk(new THREE.SphereGeometry(0.16,7,6), darkM, 0,1.3,0.52).scale.set(1.15,0.85,1.1);   // hocico
+  mk(new THREE.SphereGeometry(0.05,6,5), darkM, 0,1.38,0.62);                            // nariz
+  for(const sx of [-1,1]) mk(new THREE.SphereGeometry(0.15,7,6), darkM, sx*0.3,1.74,0.08).scale.set(0.7,1,0.5);
+  for(const sx of [-1,1]){
+    mk(new THREE.SphereGeometry(0.1,7,6), whiteM, sx*0.17,1.5,0.47);
+    mk(new THREE.SphereGeometry(0.048,6,5), darkM, sx*0.17,1.5,0.55);
+  }
+  // extremidades con pivote en el hombro/cadera
+  function limb(x,y,z,len,r){
+    const p=new THREE.Group(); p.position.set(x,y,z);
+    const m=new THREE.Mesh(new THREE.CylinderGeometry(r,r*0.8,len,6), darkM);
+    m.position.y=-len/2; m.castShadow=true; p.add(m);
+    const foot=new THREE.Mesh(new THREE.SphereGeometry(r*1.15,6,5), darkM);
+    foot.position.y=-len; foot.scale.set(1,0.6,1.4); p.add(foot);
+    lemur.add(p); return p;
+  }
+  lemParts.armL = limb(-0.4,1.05,0.28,0.55,0.09);
+  lemParts.armR = limb( 0.4,1.05,0.28,0.55,0.09);
+  lemParts.legL = limb(-0.26,0.55,0.1,0.55,0.11);
+  lemParts.legR = limb( 0.26,0.55,0.1,0.55,0.11);
+  // cola anillada hacia arriba
+  const tail = new THREE.Group(); tail.position.set(0,0.9,-0.5);
+  for(let i=0;i<9;i++){
+    const t=i/8, r=0.13-0.03*t;
+    const seg=new THREE.Mesh(new THREE.SphereGeometry(r,7,6), i%2?whiteM:darkM);
+    seg.position.set(0, t*1.35, -Math.sin(t*1.2)*0.35);
+    seg.castShadow=true; tail.add(seg);
+  }
+  lemur.add(tail); lemParts.tail=tail;
+  scene.add(lemur);
+  OBJ_TOTAL.n++;
+}
+lemur.position.set(PATH_PTS[3].x, terrainH(PATH_PTS[3].x,PATH_PTS[3].z), PATH_PTS[3].z);
+lemur.scale.setScalar(1.12);
+
+/* --- NODOS de conocimiento --- */
+function labelSprite(txt){
+  const cv=document.createElement('canvas'); cv.width=512; cv.height=128;
+  const c=cv.getContext('2d');
+  c.fillStyle='rgba(13,16,24,0.82)';
+  const r=26,w=500,h=120;
+  c.beginPath(); c.roundRect(6,4,w,h,r); c.fill();
+  c.strokeStyle='rgba(255,255,255,0.28)'; c.lineWidth=3; c.stroke();
+  c.fillStyle='#ffffff'; c.font='600 44px system-ui, sans-serif';
+  c.textAlign='center'; c.textBaseline='middle';
+  c.fillText(txt, 256, 66, 470);
+  const tx=new THREE.CanvasTexture(cv); tx.colorSpace=THREE.SRGBColorSpace;
+  const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tx, transparent:true, depthWrite:false}));
+  sp.scale.set(6.2,1.55,1);
+  return sp;
+}
+const NODES_DATA = [
+  { t:'Portal del Torii', L:0, x:PATH_PTS[0].x+2.6, z:PATH_PTS[0].z-1.8,
+    b:'Un torii separa el mundo cotidiano de un espacio dedicado al saber. Cada vez que cruzas una puerta de aprendizaje —un curso, un libro, una pregunta nueva— dejas atrás lo que creías saber y entras en territorio de curiosidad.',
+    tip:'Consejo: escribe la pregunta que te trajo aquí. Será tu brújula durante toda la travesía.' },
+  { t:'Muelle de la Curiosidad', L:0, x:-5, z:-49,
+    b:'Los grandes descubrimientos empiezan observando antes de navegar. El muelle es el lugar del explorador: mirar el horizonte, formular hipótesis y preparar el equipo antes de lanzarse a aguas desconocidas.',
+    tip:'Consejo: antes de buscar respuestas, dedica un minuto a formular mejor la pregunta.' },
+  { t:'Puente del Encuentro', L:0, x:0, z:0, useBridge:true,
+    b:'Un puente no elimina al río: lo cruza. Las disciplinas funcionan igual —la matemática dialoga con el arte, la ciencia con la historia—. Las mejores ideas aparecen donde dos orillas se conectan.',
+    tip:'Consejo: relaciona lo que aprendes hoy con algo que ya sabías de otro tema.' },
+  { t:'Casa del Saber', L:0, x:0, z:0, useHouse:true,
+    b:'La lectura es una casa que se habita: cada libro es una habitación nueva. En esta villa el conocimiento se guarda, se comparte y se vuelve historia común; leer en comunidad multiplica lo aprendido.',
+    tip:'Consejo: explica en voz alta lo que acabas de leer; enseñar es la mejor forma de aprender.' },
+  { t:'Arboleda del Saber', L:1, x:-31.2, z:8.6,
+    b:'Bajo el suelo, las raíces de un bosque se conectan entre sí y comparten nutrientes. El conocimiento también crece en red: cada idea nueva echa raíces en las que ya tenías y se hace más fuerte junto a otras.',
+    tip:'Consejo: construye mapas mentales; verás cómo las ideas se enlazan entre sí.' },
+  { t:'Jardín de la Calma', L:2, x:-11.5, z:-21.5,
+    b:'Un jardín de rocas no es adorno: es una invitación a la concentración. La atención es como un músculo; la práctica deliberada, constante y centrada, es lo que convierte esfuerzo en dominio.',
+    tip:'Consejo: estudia en bloques cortos y sin distracciones; la calma también se entrena.' },
+  { t:'Cumbre del Conocimiento', L:3, x:-9, z:-7,
+    b:'Desde la cumbre ves todo el recorrido: la playa, la aldea, el bosque, el jardín. El conocimiento se construye por capas, como esta montaña: cada nivel se apoya firmemente en el anterior. ¡La próxima cumbre es tuya!',
+    tip:'Consejo: repasa el camino recorrido cada semana; así consolidas cada nivel antes de subir al siguiente.' },
+];
+const nodes=[];
+{
+  const ringGeo=new THREE.TorusGeometry(1.0,0.07,6,26);
+  for(const nd of NODES_DATA){
+    let x=nd.x, z=nd.z;
+    if(nd.useBridge){ const p=5.6; x=BRIDGE.x-BRIDGE.tz*p; z=BRIDGE.z+BRIDGE.tx*p; }   // ⟂ al río
+    if(nd.useHouse){ x=27.5; z=18; }
+    const h=terrainH(x,z);
+    const g=new THREE.Group();
+    const ped=mesh(new THREE.CylinderGeometry(0.55,0.7,1.1,7), MAT.stoneD, 0,0.55,0, 0, g);
+    mesh(new THREE.CylinderGeometry(0.08,0.1,2.9,5), MAT.woodD, 0,2.2,0, 0, g);
+    const flag=mesh(new THREE.BoxGeometry(1.15,0.66,0.05), MAT.red, 0.62,3.3,0, 0, g);
+    const ring=new THREE.Mesh(ringGeo, new THREE.MeshStandardMaterial({color:'#e8b84b', emissive:'#8a6210', emissiveIntensity:0.7, flatShading:true}));
+    ring.rotation.x=Math.PI/2; ring.position.y=0.28; g.add(ring);
+    const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.34,0),
+      new THREE.MeshStandardMaterial({color:'#5aa9ff', emissive:'#2f6fd8', emissiveIntensity:0.9, flatShading:true}));
+    gem.position.y=3.55; g.add(gem);
+    const sp=labelSprite(nd.t); sp.position.y=4.5; g.add(sp);
+    g.position.set(x,h,z); scene.add(g);
+    nodes.push({data:nd, g, ring, gem, flag, sp, x, z, visited:false});
+    OBJ_TOTAL.n++;
+    claim(x,z,1.1,1.1,'nodo:'+nd.t,0,0.8);
+  }
+}
+window.__nodeCount = nodes.length;
+
+/* --- ESTADO Y ENTRADA --- */
+const $=id=>document.getElementById(id);
+const visited=new Set();
+try{ (JSON.parse(localStorage.getItem('axiom-isla-nodos')||'[]')).forEach(i=>visited.add(i)); }catch(e){}
+function refreshChip(){ $('nodos').innerHTML = `Nodos <b>${visited.size}/7</b><small>(E)</small>`; }
+refreshChip();
+
+const keys={};
+let modalOpen=false, nightOn=false, nightT=0;
+addEventListener('keydown', e=>{
+  if(e.code==='Space') e.preventDefault();
+  keys[e.code]=true;
+  if(e.code==='KeyN' && !e.repeat) toggleNight();
+  if(e.code==='KeyC' && !e.repeat) toggleCam();
+  if(e.code==='KeyE'){ e.preventDefault(); modalOpen? closeModal() : tryOpenNode(); }
+  if(e.code==='Escape' && modalOpen) closeModal();
+});
+addEventListener('keyup', e=>{ keys[e.code]=false; });
+$('mBtn').addEventListener('click', ()=>closeModal());
+$('btnNoche').addEventListener('click', ()=>toggleNight());
+$('btnCam').addEventListener('click', ()=>toggleCam());
+function toggleNight(){
+  nightOn=!nightOn;
+  $('btnNoche').innerHTML = (nightOn?'Día':'Noche') + ' <small>(N)</small>';
+}
+function toggleCam(){
+  camMode = camMode==='libre'?'seguir':'libre';
+  $('btnCam').innerHTML = `Cámara: ${camMode} <small>(C)</small>`;
+  if(camMode==='seguir'){ followDist=15; }
+}
+
+/* --- NODOS: interacción --- */
+let nearNode=null;
+function tryOpenNode(){
+  if(!nearNode) return;
+  const nd=nearNode;
+  $('mTag').textContent = 'Nodo de conocimiento · nivel ' + nd.data.L;
+  $('mTitle').textContent = nd.data.t;
+  $('mBody').textContent = nd.data.b;
+  $('mTip').textContent = nd.data.tip;
+  $('modal').style.display='flex';
+  modalOpen=true;
+}
+function closeModal(){
+  $('modal').style.display='none'; modalOpen=false;
+  if(nearNode && !nearNode.visited){
+    nearNode.visited=true;
+    visited.add(NODES_DATA.indexOf(nearNode.data));
+    try{ localStorage.setItem('axiom-isla-nodos', JSON.stringify([...visited])); }catch(e){}
+    nearNode.ring.material.color.set('#6fd08c'); nearNode.ring.material.emissive.set('#2c7a48');
+    nearNode.gem.material.color.set('#6fd08c'); nearNode.gem.material.emissive.set('#2c7a48');
+    nearNode.flag.material = MAT.leafR;
+    refreshChip();
+  }
+}
+
+/* --- CÁMARA --- */
+let camMode='libre', az=0.85, el=0.95, dist=97, followDist=15;
+const camTarget=new THREE.Vector3(0,7,0);
+const camPos=new THREE.Vector3();
+function sph(az_,el_,d_){ return new THREE.Vector3(Math.sin(az_)*Math.cos(el_)*d_, Math.sin(el_)*d_, Math.cos(az_)*Math.cos(el_)*d_); }
+let dragging=false, lastX=0, lastY=0, panMode=false;
+renderer.domElement.addEventListener('pointerdown', e=>{
+  dragging=true; panMode=e.shiftKey; lastX=e.clientX; lastY=e.clientY;
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+addEventListener('pointerup', ()=>{ dragging=false; });
+addEventListener('pointermove', e=>{
+  if(!dragging) return;
+  const dx=e.clientX-lastX, dy=e.clientY-lastY; lastX=e.clientX; lastY=e.clientY;
+  if(panMode && camMode==='libre'){
+    const k=dist*0.0016;
+    const fx=-Math.sin(az), fz=-Math.cos(az);           // adelante (en plano)
+    const rx=Math.cos(az), rz=-Math.sin(az);            // derecha
+    camTarget.x += (-rx*dx + fx*dy)*k;
+    camTarget.z += (-rz*dx + fz*dy)*k;
+    const r=Math.hypot(camTarget.x,camTarget.z);
+    if(r>72){ camTarget.x*=72/r; camTarget.z*=72/r; }
+  }else{
+    az -= dx*0.0052;
+    el = clamp(el + dy*0.0042, 0.10, 1.48);
+  }
+});
+renderer.domElement.addEventListener('wheel', e=>{
+  e.preventDefault();
+  dist = clamp(dist*Math.exp(e.deltaY*0.0011), camMode==='libre'?8:6, camMode==='libre'?180:44);
+},{passive:false});
+
+/* --- MOVIMIENTO DEL LÉMUR --- */
+const vel=new THREE.Vector3();
+let vy=0, grounded=true, walkPhase=0, faceYaw=0;
+const WALK=7.6, RUN=13.2, GRAV=30, JUMPV=11.5;
+function updateLemur(dt){
+  const f=(keys['KeyW']?1:0)-(keys['KeyS']?1:0);
+  const s=(keys['KeyD']?1:0)-(keys['KeyA']?1:0);
+  const run=keys['ShiftLeft']||keys['ShiftRight'];
+  let mx=0,mz=0;
+  if((f||s) && !modalOpen){
+    const fx=-Math.sin(az), fz=-Math.cos(az);
+    const rx=Math.cos(az), rz=-Math.sin(az);
+    mx = fx*f + rx*s; mz = fz*f + rz*s;
+    const l=Math.hypot(mx,mz)||1; mx/=l; mz/=l;
+    const sp=run?RUN:WALK;
+    const nx=lemur.position.x+mx*sp*dt, nz=lemur.position.z+mz*sp*dt;
+    // no adentrarse en alta mar
+    if(Math.hypot(nx,nz)<ISLE_R+14 && terrainH(nx,nz)>-1.4){ lemur.position.x=nx; lemur.position.z=nz; }
+    faceYaw = Math.atan2(mx,mz);
+  }
+  vel.set(mx,0,mz);
+  const ground = terrainH(lemur.position.x, lemur.position.z);
+  if((keys['Space']) && grounded && !modalOpen){ vy=JUMPV; grounded=false; }
+  vy-=GRAV*dt; lemur.position.y+=vy*dt;
+  if(lemur.position.y<=ground){ lemur.position.y=ground; vy=0; grounded=true; }
+  const moving = (mx||mz)?1:0;
+  faceYaw = lemur.rotation.y + shortest(faceYaw-lemur.rotation.y)*(moving?Math.min(1,dt*12):0);
+  lemur.rotation.y = faceYaw;
+  // animación
+  walkPhase += dt*(moving?(run?15:10):2.2);
+  const sw = moving?0.62:0.05;
+  const c=Math.sin(walkPhase);
+  lemParts.legL.rotation.x =  c*sw; lemParts.legR.rotation.x = -c*sw;
+  lemParts.armL.rotation.x = -c*sw*0.8; lemParts.armR.rotation.x = c*sw*0.8;
+  if(!grounded){ lemParts.armL.rotation.x=-1.2; lemParts.armR.rotation.x=-1.2; lemParts.legL.rotation.x=0.5; lemParts.legR.rotation.x=-0.4; }
+  lemur.position.y += moving&&grounded ? Math.abs(c)*0.06 : 0;
+  lemParts.tail.rotation.z = Math.sin(perfT*2.6)*0.16;
+  lemParts.tail.rotation.x = -0.12 + (moving?0.1:0);
+}
+function shortest(a){ return Math.atan2(Math.sin(a),Math.cos(a)); }
+
+/* --- DÍA / NOCHE --- */
+const skyDay={top:new THREE.Color('#7fa8c9'), bot:new THREE.Color('#d9d3dd')};
+const skyNight={top:new THREE.Color('#0b1030'), bot:new THREE.Color('#1c2340')};
+const fogDay=new THREE.Color('#c9c4cf'), fogNight=new THREE.Color('#141a30');
+const seaDay=new THREE.Color('#3f8fb0'), seaNight=new THREE.Color('#12395c');
+function updateNight(dt){
+  const tgt=nightOn?1:0;
+  nightT += clamp(tgt-nightT, -dt*0.8, dt*0.8);
+  const t=smoothstep(0,1,nightT);
+  sun.intensity=lerp(1.85,0.05,t);
+  hemi.intensity=lerp(0.85,0.16,t);
+  moon.intensity=lerp(0,0.5,t);
+  amb.intensity=lerp(0,0.32,t);
+  skyUni.top.value.copy(skyDay.top).lerp(skyNight.top,t);
+  skyUni.bot.value.copy(skyDay.bot).lerp(skyNight.bot,t);
+  scene.fog.color.copy(fogDay).lerp(fogNight,t);
+  sea.material.color.copy(seaDay).lerp(seaNight,t);
+  stars.material.opacity=t*0.9;
+  for(const b of window.__lampGlow) b.material.emissiveIntensity=lerp(0.15,2.4,t);
+}
+
+/* --- BUCLE --- */
+let perfT=0, lastT=performance.now();
+function tick(){
+  requestAnimationFrame(tick);
+  const now=performance.now();
+  const dt=Math.min(0.05,(now-lastT)/1000); lastT=now; perfT+=dt;
+  updateLemur(dt);
+  updateNight(dt);
+  // cámara
+  let desired;
+  if(camMode==='libre'){ desired=camTarget.clone().add(sph(az,el,dist)); }
+  else{
+    const t=lemur.position.clone().add(new THREE.Vector3(0,1.9,0));
+    desired=t.add(sph(az,0.34+el*0.12,followDist));
+  }
+  camPos.lerp(desired, 1-Math.exp(-dt*7));
+  camera.position.copy(camPos);
+  camera.lookAt(camMode==='libre'?camTarget:lemur.position.clone().add(new THREE.Vector3(0,1.5,0)));
+  // sol sigue para sombras estables
+  sun.target.position.copy(camMode==='libre'?camTarget:lemur.position);
+  sun.position.copy(sun.target.position).add(new THREE.Vector3(70,95,40));
+  // nodos
+  let best=1e9, bn=null;
+  for(const nd of nodes){
+    nd.ring.rotation.z += dt*0.8;
+    nd.gem.rotation.y += dt*1.4;
+    nd.gem.position.y = 3.55 + Math.sin(perfT*2+nd.x)*0.12;
+    nd.sp.material.opacity = dist>70?0.0:1;   // etiquetas lejos: ocultas
+    if(!nd.visited && camMode!=='libre'){ /* nada */ }
+    const q=Math.hypot(lemur.position.x-nd.x, lemur.position.z-nd.z);
+    if(q<best){ best=q; bn=nd; }
+  }
+  nearNode = (best<4.8 && !modalOpen)? bn : null;
+  if(nearNode){ $('prompt').style.display='block'; $('promptTxt').textContent = (nearNode.visited?'Revisar nodo: ':'Abrir nodo: ')+nearNode.data.t; }
+  else $('prompt').style.display='none';
+  // rocas flotantes
+  for(const fl of floaters){ fl.g.position.y = fl.y0 + Math.sin(perfT*fl.sp+fl.ph)*0.9; fl.g.rotation.y += dt*0.05; }
+  renderer.render(scene,camera);
+}
+addEventListener('resize', ()=>{
+  camera.aspect=innerWidth/innerHeight; camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+});
+$('sub').textContent = `Prototipo jugable — three.js r180 · 3 niveles · ${OBJ_TOTAL.n} objetos`;
+
+/* --- hooks para verificación automatizada (capturas) --- */
+window.__cam=(a,e,d,tx=0,tz=0)=>{ az=a*Math.PI/180; el=e*Math.PI/180; dist=d; camTarget.set(tx,Math.max(2,terrainH(tx,tz)+2),tz); camMode='libre'; };
+window.__lemurTo=(i)=>{ const p=PATH_PTS[clamp(i|0,0,PATH_N)]; lemur.position.set(p.x,terrainH(p.x,p.z),p.z); camMode='seguir'; };
+window.__night=(b)=>{ nightOn=!!b; nightT=nightOn?1:0; $('btnNoche').innerHTML=(nightOn?'Día':'Noche')+' <small>(N)</small>'; };
+window.__state=()=>({ ready:true, err:window.__err, nodes:visited.size, objs:OBJ_TOTAL.n,
+  lemur:[lemur.position.x,lemur.position.y,lemur.position.z].map(v=>+v.toFixed(1)),
+  bridge:BRIDGE, falls:falls.length });
+tick();
+</script>
+</body>
+</html>

@@ -19,7 +19,6 @@ export async function POST(req: NextRequest) {
   }
   const { ctx } = authCheck
 
-  // Check plan allows RAG (Pro+)
   const access = await checkFeatureAccess(ctx.userId, 'ragEnabled')
   if (!access.allowed) {
     return NextResponse.json({ error: access.reason }, { status: 403 })
@@ -148,8 +147,6 @@ export async function POST(req: NextRequest) {
         domain: domain || undefined,
         source: 'user_document',
         sourceId: doc.id,
-        // SECURITY (AX-01/AX-02): fragmento ligado a su propietario
-        ownerId: ctx.userId,
         metadata: { title: doc.title, fileType: doc.fileType },
       })
     }

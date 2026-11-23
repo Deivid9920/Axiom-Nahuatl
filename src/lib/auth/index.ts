@@ -1,4 +1,5 @@
 // AXIOM — Authentication & RBAC
+// Email/password + JWT + RBAC
 
 import argon2 from 'argon2'
 import { SignJWT, jwtVerify } from 'jose'
@@ -28,9 +29,6 @@ function getJwtSecret(): Uint8Array {
   cachedSecret = new TextEncoder().encode(raw || DEV_FALLBACK_SECRET)
   return cachedSecret
 }
-const JWT_ISSUER = 'axiom.app'
-const JWT_AUDIENCE = 'axiom.web'
-
 const ACCESS_TOKEN_TTL = 15 * 60  // 15 minutes (seconds)
 const REFRESH_TOKEN_TTL = 7 * 24 * 60 * 60  // 7 days
 
@@ -39,7 +37,6 @@ export interface JwtPayload {
   email: string
   roles: Role[]
   jti: string
-  sid: string
   type: 'access' | 'refresh'
   iat: number
   exp: number
@@ -59,8 +56,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   try {
     return await argon2.verify(hash, password)
   } catch (err) {
-    // DIAGNÓSTICO: registrar fallos de argon2 sin exponer la contraseña
-    console.error('[auth] argon2.verify falló — revisa la instalación del módulo nativo:', err)
+    logger.warn('argon2 verify failed', { err: String(err) })
     return false
   }
 }
@@ -108,57 +104,50 @@ export function validatePasswordStrength(password: string): { valid: boolean; er
 }
 
 // JWT issue/verify
-export async function issueSession(user: { id: string; email: string; roles: Role[] }): Promise<{
-  accessToken: string
-  refreshToken: string
-  sessionId: string
-}> {
-  const sessionId = crypto.randomUUID()   // identifica la sesión (jti del access)
-  const refreshSecret = crypto.randomUUID() // material secreto del refresco
+export async function issueAccessToken(user: { id: string; email: string; roles: Role[] }): Promise<string> {
+  const jti = crypto.randomUUID()
   const now = Math.floor(Date.now() / 1000)
-  const refreshHash = await argon2.hash(refreshSecret)
 
   await db.authSession.create({
     data: {
       userId: user.id,
-      jwtJti: sessionId,
-      refreshHash,
-      expiresAt: new Date(now * 1000 + REFRESH_TOKEN_TTL * 1000),
+      jwtJti: jti,
+      refreshHash: '',
+      expiresAt: new Date(now * 1000 + ACCESS_TOKEN_TTL * 1000),
     },
   })
 
-  const base = { email: user.email, roles: user.roles, sid: sessionId }
-
-  const accessToken = await new SignJWT({ ...base, type: 'access' })
+  return new SignJWT({ email: user.email, roles: user.roles, type: 'access' })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setSubject(user.id)
-    .setJti(sessionId)
-    .setIssuer(JWT_ISSUER)
-    .setAudience(JWT_AUDIENCE)
+    .setJti(jti)
     .setIssuedAt(now)
     .setExpirationTime(now + ACCESS_TOKEN_TTL)
     .sign(getJwtSecret())
+}
 
-  const refreshToken = await new SignJWT({ ...base, type: 'refresh' })
+export async function issueRefreshToken(user: { id: string; email: string; roles: Role[] }): Promise<string> {
+  const jti = crypto.randomUUID()
+  const now = Math.floor(Date.now() / 1000)
+  const refreshHash = await argon2.hash(jti)
+
+  await db.authSession.updateMany({
+    where: { userId: user.id, revokedAt: null },
+    data: { refreshHash },
+  })
+
+  return new SignJWT({ email: user.email, roles: user.roles, type: 'refresh' })
     .setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
     .setSubject(user.id)
-    .setJti(refreshSecret)
-    .setIssuer(JWT_ISSUER)
-    .setAudience(JWT_AUDIENCE)
+    .setJti(jti)
     .setIssuedAt(now)
     .setExpirationTime(now + REFRESH_TOKEN_TTL)
     .sign(getJwtSecret())
-
-  return { accessToken, refreshToken, sessionId }
 }
 
 export async function verifyToken(token: string): Promise<JwtPayload | null> {
   try {
-    const { payload } = await jwtVerify(token, getJwtSecret(), {
-      algorithms: ['HS256'],
-      issuer: JWT_ISSUER,
-      audience: JWT_AUDIENCE,
-    })
+    const { payload } = await jwtVerify(token, getJwtSecret())
     return payload as unknown as JwtPayload
   } catch {
     return null
@@ -235,32 +224,27 @@ export async function getAuthContext(): Promise<AuthContext | null> {
 
 export async function refreshSession(refreshToken: string): Promise<AuthContext | null> {
   const payload = await verifyToken(refreshToken)
-  if (!payload || payload.type !== 'refresh' || !payload.sid) return null
+  if (!payload || payload.type !== 'refresh') return null
 
-  const session = await db.authSession.findUnique({
-    where: { jwtJti: payload.sid },
+  const session = await db.authSession.findFirst({
+    where: { userId: payload.sub, revokedAt: null },
+    orderBy: { createdAt: 'desc' },
   })
-  if (!session || session.revokedAt || session.userId !== payload.sub) return null
-  if (session.expiresAt.getTime() < Date.now()) return null
+  if (!session) return null
 
   const valid = await argon2.verify(session.refreshHash, payload.jti)
   if (!valid) return null
 
   const roles = await getUserRoles(payload.sub)
-
-  await db.authSession.update({
-    where: { id: session.id },
-    data: { revokedAt: new Date() },
-  })
-
-  const issued = await issueSession({ id: payload.sub, email: payload.email, roles })
-  await setAuthCookies(issued.accessToken, issued.refreshToken)
+  const newAccess = await issueAccessToken({ id: payload.sub, email: payload.email, roles })
+  const newRefresh = await issueRefreshToken({ id: payload.sub, email: payload.email, roles })
+  await setAuthCookies(newAccess, newRefresh)
 
   return {
     userId: payload.sub,
     email: payload.email,
     roles,
-    jti: issued.sessionId,
+    jti: payload.jti,
     requestId: crypto.randomUUID(),
   }
 }
@@ -298,7 +282,9 @@ export async function registerUser(opts: {
   email: string
   password: string
   name?: string
-}): Promise<{ ok: true; userId: string } | { ok: false; error: string }> {
+  controlNumber?: string   // R26 — número de control escolar (opcional)
+  institutionCode?: string // R26 — código de institución verificada (opcional)
+}): Promise<{ ok: true; userId: string; institutionName?: string } | { ok: false; error: string }> {
   const email = opts.email.toLowerCase().trim()
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { ok: false, error: 'Email inválido' }
@@ -314,12 +300,39 @@ export async function registerUser(opts: {
     return { ok: false, error: 'No se pudo crear la cuenta. Verifica tus datos.' }
   }
 
+  // R26 — número de control: normalizar y validar unicidad con error amable
+  const controlNumber = opts.controlNumber?.trim() || null
+  if (controlNumber) {
+    if (controlNumber.length > 20) {
+      return { ok: false, error: 'El número de control no puede exceder 20 caracteres' }
+    }
+    const controlClash = await db.user.findUnique({ where: { controlNumber } })
+    if (controlClash) {
+      return { ok: false, error: 'Ese número de control ya está registrado en otra cuenta' }
+    }
+  }
+
+  // R26 — código de institución: debe corresponder a una institución VERIFICADA
+  let institutionId: string | null = null
+  let institutionName: string | undefined
+  const instCode = opts.institutionCode?.trim().toUpperCase() || null
+  if (instCode) {
+    const inst = await db.institution.findUnique({ where: { verificationCode: instCode } })
+    if (!inst || inst.status !== 'VERIFIED') {
+      return { ok: false, error: 'El código de institución no es válido o aún no está verificado' }
+    }
+    institutionId = inst.id
+    institutionName = inst.name
+  }
+
   const passwordHash = await hashPassword(opts.password)
   const user = await db.user.create({
     data: {
       email,
       name: opts.name,
       passwordHash,
+      controlNumber,
+      institutionId,
       profile: { create: {} },
     },
   })
@@ -344,10 +357,14 @@ export async function registerUser(opts: {
     })
   }
 
-  await audit('user.register', { userId: user.id, resourceId: user.id })
-  logger.info('user.registered', { user_id: user.id, email })
+  await audit('user.register', {
+    userId: user.id,
+    resourceId: user.id,
+    ...(institutionId ? { metadata: { institutionId, institutionName } } : {}),
+  })
+  logger.info('user.registered', { user_id: user.id, email, has_institution: Boolean(institutionId) })
 
-  return { ok: true, userId: user.id }
+  return { ok: true, userId: user.id, institutionName }
 }
 
 export async function authenticate(opts: {
@@ -372,6 +389,7 @@ export async function authenticate(opts: {
     throw err
   }
 
+  // Use a dummy hash that will always fail verification.
   const DUMMY_HASH = '$argon2id$v=19$m=19456,t=2,p=1$dGhpcyBpcyBhIGR1bW15IHNhbHQ$dummyhashthatwillalwaysfailverification1234567890'
   const hashToVerify = user?.passwordHash || DUMMY_HASH
   const valid = await verifyPassword(opts.password, hashToVerify)
@@ -401,8 +419,9 @@ export async function authenticate(opts: {
   }
 
   const roles = await getUserRoles(user.id)
-  const issued = await issueSession({ id: user.id, email: user.email, roles })
-  await setAuthCookies(issued.accessToken, issued.refreshToken)
+  const accessToken = await issueAccessToken({ id: user.id, email: user.email, roles })
+  const refreshToken = await issueRefreshToken({ id: user.id, email: user.email, roles })
+  await setAuthCookies(accessToken, refreshToken)
 
   await db.user.update({
     where: { id: user.id },
@@ -421,7 +440,7 @@ export async function authenticate(opts: {
       userId: user.id,
       email: user.email,
       roles,
-      jti: issued.sessionId,
+      jti: '',
       requestId: crypto.randomUUID(),
     },
   }
