@@ -965,11 +965,10 @@ export function WorldMap2D({
       {hovered && !previewMod && (
         <div className="pointer-events-none absolute top-20 left-1/2 -translate-x-1/2 z-20">
           <div
-            className={`rounded-2xl border-2 px-5 py-2 text-center shadow-[0_4px_0_#2D2A26] min-w-[260px] ${
-              hovered.card?.unlocked || hovered.mod.index === 1
+            className={`rounded-2xl border-2 px-5 py-2 text-center shadow-[0_4px_0_#2D2A26] min-w-[260px] ${hovered.card?.unlocked || hovered.mod.index === 1
                 ? 'border-[#2D2A26] bg-[#FAF3E7]/96 text-[#2D2A26]'
                 : 'border-[#4A4A4A] bg-[#EAEAEA]/96 text-[#333] grayscale'
-            }`}
+              }`}
           >
             <p className="text-[10px] font-black uppercase tracking-[0.15em] text-[#E76F51]">
               {hovered.mod.index}. {hovered.stopName} · {hovered.mod.level}
@@ -1000,15 +999,14 @@ export function WorldMap2D({
               }}
               onDoubleClick={() => (unlocked ? onOpenModule(mod.code) : setPreviewMod(mod))}
               title="Clic para girar el planeta a esta parada · Doble clic para abrir"
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold border transition-all cursor-pointer ${
-                isCur
-                  ? 'border-[#2D2A26] bg-[#E9B83E] text-[#2D2A26] shadow-[0_2px_0_#2D2A26]'
-                  : done
-                    ? 'border-[#6B8E6A] bg-[#6B8E6A]/15 text-[#2D2A26] hover:bg-[#6B8E6A]/25'
-                    : unlocked
-                      ? 'border-[#2D2A26]/25 bg-white text-[#2D2A26] hover:border-[#E76F51]'
-                      : 'border-[#2D2A26]/12 bg-[#EAE4D9]/70 text-[#7A746C] hover:bg-[#E0D9CC]'
-              }`}
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold border transition-all cursor-pointer ${isCur
+                ? 'border-[#2D2A26] bg-[#E9B83E] text-[#2D2A26] shadow-[0_2px_0_#2D2A26]'
+                : done
+                  ? 'border-[#6B8E6A] bg-[#6B8E6A]/15 text-[#2D2A26] hover:bg-[#6B8E6A]/25'
+                  : unlocked
+                    ? 'border-[#2D2A26]/25 bg-white text-[#2D2A26] hover:border-[#E76F51]'
+                    : 'border-[#2D2A26]/12 bg-[#EAE4D9]/70 text-[#7A746C] hover:bg-[#E0D9CC]'
+                }`}
             >
               <span
                 className="w-2 h-2 rounded-full"

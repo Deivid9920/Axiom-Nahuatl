@@ -252,6 +252,23 @@
         "Cambios y Actualizaciones.docx"
       ],
       "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    },
+    {
+      "id": "CHG-013",
+      "date": "2026-11-23 20:48",
+      "category": "Corrección — Globo 2D",
+      "title": "Ajuste y corrección de formato en el componente WorldMap2D",
+      "summary": "Se limpiaron y corrigieron las plantillas de clases CSS del tooltip y de los chips de paradas en src/components/worldmap2d.tsx y se publicó la actualización corregida en la rama.",
+      "details": [
+        "Se corrigió el formato de las clases dinámicas en el tooltip flotante y en la barra de chips de paradas de src/components/worldmap2d.tsx.",
+        "Se verificó la compilación sin errores y se publicó el commit corregido en feat/mapa-2d-cuphead-pixijs."
+      ],
+      "files": [
+        "src/components/worldmap2d.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado y publicado en rama"
     }
   ]
 }
