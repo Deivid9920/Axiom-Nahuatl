@@ -566,8 +566,8 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
             <span className="axiom-chip" title="Lecciones completadas"><MS name="eco" className="!text-[18px]" style={{ color: '#6B8E6A' } as any} />{chips.lessons}</span>
           </div>
         </header>
-        <main className="p-6 lg:p-8 min-w-0">
-          <div className="max-w-[1100px] mx-auto">
+        <main className={tab === 'dashboard' && !lesson && !pathModule ? 'p-0 min-w-0' : 'p-6 lg:p-8 min-w-0'}>
+          <div className={tab === 'dashboard' && !lesson && !pathModule ? 'w-full' : 'max-w-[1100px] mx-auto'}>
             <div key={tab + (lesson?.topicId || '')} className="fade-up">
               {tab === 'dashboard' && (lesson ? (
                 lesson.isFinal
@@ -589,16 +589,20 @@ function AppShell({ user, onLogout }: { user: User; onLogout: () => void }) {
               {tab === 'admin' && <AdminTab user={user} />}
             </div>
 
-            {/* Pie de página — atribución limpia (R16) */}
-            <div className="axiom-ruler mt-10 no-print" />
-            <footer className="mt-4 mb-2 no-print">
-              <div className="footer-axiom">
-                <p className="footer-alpha">Diseño en fase Alpha, contactenos para sugerencias y opiniones!!</p>
-                <p className="footer-line">Derechos de autor reservados</p>
-                <p className="footer-line dim">Desarrollado por equipo Axiom Enterprise</p>
-                <button onClick={() => setTermsOpen(true)} className="footer-terms">Términos y condiciones</button>
-              </div>
-            </footer>
+            {/* Pie de página — oculto en la vista inmersiva a pantalla completa del Mundo */}
+            {!(tab === 'dashboard' && !lesson && !pathModule) && (
+              <>
+                <div className="axiom-ruler mt-10 no-print" />
+                <footer className="mt-4 mb-2 no-print">
+                  <div className="footer-axiom">
+                    <p className="footer-alpha">Diseño en fase Alpha, contactenos para sugerencias y opiniones!!</p>
+                    <p className="footer-line">Derechos de autor reservados</p>
+                    <p className="footer-line dim">Desarrollado por equipo Axiom Enterprise</p>
+                    <button onClick={() => setTermsOpen(true)} className="footer-terms">Términos y condiciones</button>
+                  </div>
+                </footer>
+              </>
+            )}
           </div>
         </main>
       </div>

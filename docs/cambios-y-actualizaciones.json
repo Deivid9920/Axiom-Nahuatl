@@ -233,6 +233,25 @@
         "Cambios y Actualizaciones.docx"
       ],
       "status": "Verificado (typecheck 0 errores · verificado visualmente)"
+    },
+    {
+      "id": "CHG-012",
+      "date": "2026-11-23 18:56",
+      "category": "Vida Marina y Pantalla Completa del Planeta 2D",
+      "title": "Arrecifes de coral, boyas mediasumergidas, barquitos y planeta a pantalla completa con fondo azul bajito",
+      "summary": "Se dio mayor vida al globo 2D giratorio agregando arrecifes turquesa y corales sumergidos, boyas náuticas mediasumergidas con baliza parpadeante, barquitos y olas animadas, además de extender el planeta a toda la pantalla sobre un fondo azul bajito.",
+      "details": [
+        "Se añadieron capas de vida marina proyectadas en 360° sobre la esfera en src/components/worldmap2d.tsx: 9 arrecifes turquesa con corales cálidos sumergidos, 8 boyas náuticas coral-crema mediasumergidas con aro de agua y farito parpadeante, 4 barquitos vintage navegando y 12 crestas de olas animadas.",
+        "Se cambió el fondo exterior del planeta a un degradado azul bajito pastel (#D8F0F8 → #ADD8EA) y se amplió el radio del globo para llenar mejor la pantalla.",
+        "Se ajustó el contenedor principal en src/app/page.tsx para que la pantalla de Inicio muestre el planeta a ancho completo sin márgenes ni tarjeta recortada."
+      ],
+      "files": [
+        "src/components/worldmap2d.tsx",
+        "src/app/page.tsx",
+        "docs/cambios-y-actualizaciones.json",
+        "Cambios y Actualizaciones.docx"
+      ],
+      "status": "Verificado (typecheck 0 errores · verificado visualmente)"
     }
   ]
 }

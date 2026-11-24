@@ -106,6 +106,61 @@ const ISLAND_LANDMASSES = STOP_LAT_LON.map((s, idx) => ({
   grassPts: buildOrganicIslandLand(s.lat, s.lon, s.landRx, s.landRy, s.seed),
 }))
 
+// Arrecifes de coral y bancos turquesa sumergidos repartidos en el océano del planeta
+const REEF_SPOTS: { lat: number; lon: number; rx: number; ry: number; seed: number; coralColor: number }[] = [
+  { lat: 4, lon: -82, rx: 10, ry: 6, seed: 11, coralColor: 0xe76f51 },
+  { lat: 22, lon: -48, rx: 9, ry: 5.5, seed: 12, coralColor: 0xe9b83e },
+  { lat: -12, lon: -58, rx: 11, ry: 6.5, seed: 13, coralColor: 0xf08c6c },
+  { lat: 28, lon: 4, rx: 9, ry: 5.5, seed: 14, coralColor: 0xe76f51 },
+  { lat: -6, lon: 34, rx: 10, ry: 6, seed: 15, coralColor: 0xe9b83e },
+  { lat: 26, lon: 68, rx: 9, ry: 5.5, seed: 16, coralColor: 0xf08c6c },
+  { lat: -14, lon: 106, rx: 11, ry: 6, seed: 17, coralColor: 0xe76f51 },
+  { lat: 18, lon: 144, rx: 9.5, ry: 5.5, seed: 18, coralColor: 0xe9b83e },
+  { lat: -24, lon: -118, rx: 10, ry: 6, seed: 19, coralColor: 0xf08c6c },
+]
+
+const REEF_POLYS = REEF_SPOTS.map(r => ({
+  ...r,
+  shallowPts: buildOrganicIslandLand(r.lat, r.lon, r.rx * 1.25, r.ry * 1.25, r.seed, 14),
+  reefPts: buildOrganicIslandLand(r.lat, r.lon, r.rx * 0.72, r.ry * 0.72, r.seed + 3, 12),
+}))
+
+// Boyas náuticas mediasumergidas flotando en el mar con baliza parpadeante
+const BUOY_SPOTS: { lat: number; lon: number; phase: number }[] = [
+  { lat: 24, lon: -80, phase: 0.2 },
+  { lat: 18, lon: -50, phase: 1.5 },
+  { lat: 24, lon: -24, phase: 2.8 },
+  { lat: 27, lon: 32, phase: 0.9 },
+  { lat: 22, lon: 70, phase: 2.1 },
+  { lat: 20, lon: 106, phase: 3.4 },
+  { lat: -8, lon: -120, phase: 1.1 },
+  { lat: -14, lon: -26, phase: 2.6 },
+]
+
+// Barquitos vintage navegando suavemente en el océano
+const SAILBOAT_SPOTS: { lat: number; lon: number; speedLon: number; phase: number }[] = [
+  { lat: 10, lon: -66, speedLon: 2.2, phase: 0.4 },
+  { lat: 32, lon: -28, speedLon: 1.8, phase: 2.0 },
+  { lat: 2, lon: 54, speedLon: 2.0, phase: 3.7 },
+  { lat: 14, lon: 138, speedLon: 1.9, phase: 1.3 },
+]
+
+// Pequeñas crestas de olas blancas repartidas por todo el océano
+const OCEAN_WAVE_SPOTS: { lat: number; lon: number; phase: number }[] = [
+  { lat: -4, lon: -94, phase: 0.1 },
+  { lat: 42, lon: -88, phase: 1.2 },
+  { lat: -18, lon: -78, phase: 2.4 },
+  { lat: 8, lon: -18, phase: 0.8 },
+  { lat: -22, lon: 4, phase: 1.9 },
+  { lat: 48, lon: 22, phase: 3.1 },
+  { lat: -12, lon: 62, phase: 0.6 },
+  { lat: 38, lon: 98, phase: 2.2 },
+  { lat: -26, lon: 136, phase: 1.4 },
+  { lat: 6, lon: -158, phase: 2.9 },
+  { lat: 34, lon: -132, phase: 0.5 },
+  { lat: -30, lon: -42, phase: 1.7 },
+]
+
 function projectSphere(
   latDeg: number,
   lonDeg: number,
@@ -206,7 +261,7 @@ export function WorldMap2D({
       const app = new PIXI.Application()
       await app.init({
         resizeTo: host,
-        backgroundColor: 0xf4eee3,
+        backgroundColor: 0xcbe8f3,
         antialias: true,
         resolution: Math.min(window.devicePixelRatio || 1, 2),
         autoDensity: true,
@@ -250,14 +305,16 @@ export function WorldMap2D({
       const bgG = new PIXI.Graphics()
       const globeG = new PIXI.Graphics()
       const maskedSurface = new PIXI.Container()
+      const reefsG = new PIXI.Graphics()
       const continentsG = new PIXI.Graphics()
+      const seaLifeG = new PIXI.Graphics()
       const globeMask = new PIXI.Graphics()
       const gridG = new PIXI.Graphics()
       const globeRimG = new PIXI.Graphics()
       const routesG = new PIXI.Graphics()
 
       bgLayer.addChild(bgG)
-      maskedSurface.addChild(continentsG, gridG)
+      maskedSurface.addChild(reefsG, continentsG, gridG, seaLifeG)
       maskedSurface.mask = globeMask
       globeContainer.addChild(globeG, globeMask, maskedSurface, globeRimG)
       routeLayer.addChild(routesG)
@@ -450,13 +507,13 @@ export function WorldMap2D({
         clouds.push({ g: cl, speed: 8 + (c % 3) * 3.5 })
       }
 
-      // Dibuja el fondo y la base del globo (al iniciar y al redimensionar)
+      // Dibuja el fondo azul bajito y la base del globo a pantalla completa
       const drawStaticGlobe = () => {
-        const vw = app.screen.width || 1100
-        const vh = app.screen.height || 580
+        const vw = app.screen.width || 1200
+        const vh = app.screen.height || 680
         const cx = vw * 0.5
         const cy = vh * 0.5
-        const R = Math.min(vw * 0.34, vh * 0.43, 255)
+        const R = Math.min(vw * 0.4, vh * 0.44, 335)
 
         bgG.clear()
         const skyGrad = new PIXI.FillGradient({
@@ -464,9 +521,9 @@ export function WorldMap2D({
           start: { x: 0, y: 0 },
           end: { x: 0, y: vh },
           colorStops: [
-            { offset: 0, color: 0xe7f1f4 },
-            { offset: 0.55, color: 0xf6f1e7 },
-            { offset: 1, color: 0xebe3d4 },
+            { offset: 0, color: 0xd8f0f8 },
+            { offset: 0.55, color: 0xc4e5f2 },
+            { offset: 1, color: 0xadd8ea },
           ],
           textureSpace: 'global',
         })
@@ -474,20 +531,20 @@ export function WorldMap2D({
         bgG.fill(skyGrad)
 
         globeG.clear()
-        globeG.circle(cx, cy + 12, R * 1.07)
-        globeG.fill({ color: 0x7ab4c4, alpha: 0.16 })
-        globeG.circle(cx, cy + 14, R * 1.02)
-        globeG.fill({ color: 0x203848, alpha: 0.22 })
+        globeG.circle(cx, cy + 14, R * 1.06)
+        globeG.fill({ color: 0x62aac4, alpha: 0.16 })
+        globeG.circle(cx, cy + 16, R * 1.02)
+        globeG.fill({ color: 0x1d3b4d, alpha: 0.22 })
 
         // Esfera oceánica por capas 2.5D
         globeG.circle(cx, cy, R)
-        globeG.fill(0x3a728e)
+        globeG.fill(0x36708d)
         globeG.circle(cx - R * 0.08, cy - R * 0.08, R * 0.9)
-        globeG.fill(0x5597b3)
+        globeG.fill(0x4f95b3)
         globeG.circle(cx - R * 0.16, cy - R * 0.16, R * 0.72)
-        globeG.fill(0x78bdd1)
+        globeG.fill(0x73bcd1)
         globeG.circle(cx - R * 0.24, cy - R * 0.24, R * 0.45)
-        globeG.fill({ color: 0xbde6eb, alpha: 0.55 })
+        globeG.fill({ color: 0xbde7ec, alpha: 0.55 })
 
         globeMask.clear()
         globeMask.circle(cx, cy, R - 1)
@@ -500,13 +557,57 @@ export function WorldMap2D({
         globeRimG.stroke({ width: 3.8, color: 0x2d2a26, alpha: 0.65 })
       }
 
-      // Redibuja continentes, meridianos, rutas y las 10 islas según la rotación actual del planeta
+      // Redibuja arrecifes, masas verdes, vida marina (boyas, barcos, olas), rutas e islas
       const renderRotatedGlobe = (elapsed: number) => {
-        const vw = app.screen.width || 1100
-        const vh = app.screen.height || 580
+        const vw = app.screen.width || 1200
+        const vh = app.screen.height || 680
         const cx = vw * 0.5
         const cy = vh * 0.5
-        const R = Math.min(vw * 0.34, vh * 0.43, 255)
+        const R = Math.min(vw * 0.4, vh * 0.44, 335)
+
+        // 0. Arrecifes de coral y bancos turquesa sumergidos bajo el agua
+        reefsG.clear()
+        const drawReefPoly = (
+          pts: [number, number][],
+          fillCol: number,
+          fillAlpha: number,
+          strokeCol?: number,
+        ) => {
+          const projected = pts.map(([lat, lon]) =>
+            projectSphere(lat, lon, rotLat, rotLon, cx, cy, R),
+          )
+          if (projected.filter(p => p.z > 0.02).length < 4) return
+          const flat: number[] = []
+          projected.forEach(p => {
+            if (p.z < 0) {
+              const dx = p.x - cx
+              const dy = p.y - cy
+              const d = Math.hypot(dx, dy) || 1
+              flat.push(cx + (dx / d) * R, cy + (dy / d) * R)
+            } else {
+              flat.push(p.x, p.y)
+            }
+          })
+          reefsG.poly(flat)
+          reefsG.fill({ color: fillCol, alpha: fillAlpha })
+          if (strokeCol !== undefined) {
+            reefsG.stroke({ width: 1.5, color: strokeCol, alpha: 0.4 })
+          }
+        }
+
+        REEF_POLYS.forEach(r => {
+          drawReefPoly(r.shallowPts, 0x8be0da, 0.34, 0xdffaf7)
+          drawReefPoly(r.reefPts, r.coralColor, 0.42)
+          const cPt = projectSphere(r.lat, r.lon, rotLat, rotLon, cx, cy, R)
+          if (cPt.z > 0.15) {
+            const sc = 0.6 + cPt.z * 0.5
+            // Pequeños pólipos / corales caricatura asomando bajo el agua turquesa
+            reefsG.circle(cPt.x - 6 * sc, cPt.y, 3.2 * sc)
+            reefsG.circle(cPt.x + 4 * sc, cPt.y - 3 * sc, 2.6 * sc)
+            reefsG.circle(cPt.x + 2 * sc, cPt.y + 4 * sc, 2.8 * sc)
+            reefsG.fill({ color: r.coralColor, alpha: 0.72 * cPt.z })
+          }
+        })
 
         // 1. Partes verdes orgánicas alojando exactamente a cada una de las 10 islas en el océano
         continentsG.clear()
@@ -582,6 +683,95 @@ export function WorldMap2D({
           }
           gridG.stroke({ width: 1.1, color: 0xfaf3e7, alpha: 0.17 })
         }
+
+        // 2b. Vida marina animada sobre la esfera: olas blancas, boyas mediasumergidas y barquitos
+        seaLifeG.clear()
+        OCEAN_WAVE_SPOTS.forEach(w => {
+          const p = projectSphere(w.lat, w.lon, rotLat, rotLon, cx, cy, R)
+          if (p.z < 0.12) return
+          const drift = Math.sin(elapsed * 1.4 + w.phase) * 4
+          const s = 0.6 + p.z * 0.5
+          seaLifeG.moveTo(p.x - 9 * s + drift, p.y)
+          seaLifeG.quadraticCurveTo(p.x - 4 * s + drift, p.y - 3 * s, p.x + drift, p.y)
+          seaLifeG.quadraticCurveTo(p.x + 4 * s + drift, p.y - 3 * s, p.x + 9 * s + drift, p.y)
+          seaLifeG.stroke({ width: 1.8 * s, color: 0xfaf3e7, alpha: 0.42 * p.z, cap: 'round' })
+        })
+
+        // Boyas náuticas mediasumergidas (con aro de agua y luz parpadeante)
+        BUOY_SPOTS.forEach(b => {
+          const p = projectSphere(b.lat, b.lon, rotLat, rotLon, cx, cy, R)
+          if (p.z < 0.12) return
+          const s = 0.65 + p.z * 0.52
+          const bob = Math.sin(elapsed * 2.4 + b.phase) * 2.4 * s
+          const bx = p.x
+          const by = p.y + bob
+
+          // Onda circular de agua donde queda mediasumergida la boya
+          const ringScale = 1 + Math.sin(elapsed * 2.2 + b.phase) * 0.16
+          seaLifeG.ellipse(bx, p.y + 4 * s, 11 * s * ringScale, 4.2 * s * ringScale)
+          seaLifeG.stroke({ width: 1.6 * s, color: 0xeaf9fb, alpha: 0.58 * p.z })
+
+          // Base sumergida difuminada bajo el agua
+          seaLifeG.ellipse(bx, p.y + 5 * s, 6.5 * s, 3.2 * s)
+          seaLifeG.fill({ color: 0x26546b, alpha: 0.45 * p.z })
+
+          // Cuerpo flotante de la boya (rojo coral + franja crema)
+          seaLifeG.poly([
+            bx - 6.5 * s, by + 3 * s,
+            bx + 6.5 * s, by + 3 * s,
+            bx + 4.2 * s, by - 7 * s,
+            bx - 4.2 * s, by - 7 * s,
+          ])
+          seaLifeG.fill({ color: 0xe76f51, alpha: 0.96 * p.z })
+          seaLifeG.stroke({ width: 1.8 * s, color: 0x2d2a26, alpha: 0.9 * p.z })
+
+          // Franja crema en medio
+          seaLifeG.rect(bx - 4.8 * s, by - 3 * s, 9.6 * s, 2.8 * s)
+          seaLifeG.fill({ color: 0xfaf3e7, alpha: 0.95 * p.z })
+
+          // Mástil y farito mostaza parpadeante arriba
+          seaLifeG.moveTo(bx, by - 7 * s)
+          seaLifeG.lineTo(bx, by - 12 * s)
+          seaLifeG.stroke({ width: 1.6 * s, color: 0x2d2a26, alpha: 0.9 * p.z })
+
+          const blink = 0.55 + Math.sin(elapsed * 4.5 + b.phase * 2) * 0.45
+          seaLifeG.circle(bx, by - 13 * s, 4.2 * s)
+          seaLifeG.fill({ color: 0xffe484, alpha: 0.35 * blink * p.z })
+          seaLifeG.circle(bx, by - 13 * s, 2.1 * s)
+          seaLifeG.fill({ color: 0xffe066, alpha: (0.6 + 0.4 * blink) * p.z })
+        })
+
+        // Barquitos vintage navegando suavemente
+        SAILBOAT_SPOTS.forEach(boat => {
+          const curLon = boat.lon + Math.sin(elapsed * 0.25 + boat.phase) * 7
+          const p = projectSphere(boat.lat, curLon, rotLat, rotLon, cx, cy, R)
+          if (p.z < 0.14) return
+          const s = 0.62 + p.z * 0.48
+          const bob = Math.sin(elapsed * 2.2 + boat.phase) * 1.8 * s
+          const bx = p.x
+          const by = p.y + bob
+
+          // Estela blanca
+          seaLifeG.ellipse(bx - 3 * s, by + 5 * s, 11 * s, 3.2 * s)
+          seaLifeG.fill({ color: 0xfaf3e7, alpha: 0.42 * p.z })
+          // Casco marrón
+          seaLifeG.poly([
+            bx - 9 * s, by + 1 * s,
+            bx + 9 * s, by + 1 * s,
+            bx + 6 * s, by + 5 * s,
+            bx - 6 * s, by + 5 * s,
+          ])
+          seaLifeG.fill({ color: 0x8c5535, alpha: p.z })
+          seaLifeG.stroke({ width: 1.5 * s, color: 0x2d2a26, alpha: p.z })
+          // Vela crema
+          seaLifeG.poly([
+            bx, by + 1 * s,
+            bx, by - 11 * s,
+            bx + 8 * s, by - 1 * s,
+          ])
+          seaLifeG.fill({ color: 0xfaf3e7, alpha: p.z })
+          seaLifeG.stroke({ width: 1.4 * s, color: 0x2d2a26, alpha: p.z })
+        })
 
         // 3. Proyectar las 10 paradas + dibujar ruta punteada visible
         const projectedStops = STOP_LAT_LON.map(s =>
@@ -713,9 +903,9 @@ export function WorldMap2D({
   }, [cardsSig, currentCard?.code])
 
   return (
-    <div className="relative w-full h-[calc(100vh-92px)] min-h-[590px] overflow-hidden rounded-[26px] border-2 border-[#2D2A26]/15 shadow-[0_14px_40px_rgba(32,27,21,0.1)] select-none flex flex-col">
-      {/* Canvas PixiJS del Globo 2D giratorio 360° */}
-      <div ref={hostRef} className="w-full flex-1 min-h-[460px]" />
+    <div className="relative w-full h-[calc(100vh-56px)] min-h-[620px] overflow-hidden select-none flex flex-col bg-[#CBE8F3]">
+      {/* Canvas PixiJS del Globo 2D giratorio 360° a pantalla completa */}
+      <div ref={hostRef} className="w-full flex-1 min-h-[480px]" />
 
       {/* Encabezado de métricas compacto */}
       <div className="absolute top-4 left-4 z-10 flex flex-col gap-1.5">
